@@ -8,6 +8,8 @@ Y_END = 1040
 X_START = 800
 X_END = 1115
 
+def get_minimap_dims():
+    return X_END - X_START, Y_END - Y_START
 
 def get_minimap_roi(frame):
     return frame[Y_START:Y_END, X_START:X_END]
