@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import matplotlib.colors as mcolors
 import numpy as np
+from tqdm import tqdm
+
 
 def generate_heatmap(coords_list, title, minimap_width, minimap_height):
     """
@@ -121,7 +123,7 @@ def generate_better_heatmap(coords_list, title):
         fill=True,  # Fills the contours with solid colour
         cmap=transparent_magma,  # 'magma' or 'inferno' are fantastic for smooth, dark-to-bright glows
         levels=100,
-        bw_adjust=0.5
+        bw_adjust=0.4
     )
 
     # 6. FINAL GRAPH CONFIGURATION
@@ -155,6 +157,8 @@ def generate_heatmap_dashboard(data_dict):
         print(f"Error: Could not load field image")
         return
 
+    print("\nGenerating dashboard graphics...")
+
     if field_img.ndim == 3:
         field_img = cv2.cvtColor(field_img, cv2.COLOR_BGR2RGB)
 
@@ -185,7 +189,7 @@ def generate_heatmap_dashboard(data_dict):
 
     # 4. LOOP THROUGH THE DATA AND DRAW THE GRID
     # ---------------------------------------------------------
-    for i, (title, coords) in enumerate(data_dict.items()):
+    for i, (title, coords) in enumerate(tqdm(data_dict.items(), desc="Drawing heatmaps")):
         ax = axes[i]  # Select the specific grid square
 
         # Draw the pitch template on this specific square
@@ -203,7 +207,7 @@ def generate_heatmap_dashboard(data_dict):
                 fill=True,
                 cmap=transparent_magma,
                 levels=100,
-                bw_adjust=0.25
+                bw_adjust=0.4
             )
 
         # Tidy up the specific grid square
