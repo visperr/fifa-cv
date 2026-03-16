@@ -3,7 +3,7 @@ import json
 import numpy as np
 
 
-def start_replay_dashboard(json_path, pitch_image_path):
+def start_replay(json_path, pitch_image_path):
     print("Loading match data...")
     with open(json_path, 'r') as f:
         full_data = json.load(f)
@@ -99,4 +99,4 @@ def start_replay_dashboard(json_path, pitch_image_path):
 
 if __name__ == "__main__":
     # Point these to your specific files!
-    start_replay_dashboard("../throwin.json", "../minimap_clean.png")
+    start_replay("../throwin.json", "../minimap_clean.png")

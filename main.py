@@ -1,7 +1,9 @@
 from replay.realtime_video import run_video_tracker
+from replay.replay_viewer import start_replay
 
 if __name__ == '__main__':
-    run_video_tracker("tests/clips/throwin.mp4")
+    # run_video_tracker("tests/clips/throwin.mp4")
+    start_replay("throwin.json", "minimap_clean.png")
     # save_tracking_data(process_video("tests/clips/throwin.mp4"), "throwin.json")
 
     # with open("output.json", "r") as f:
