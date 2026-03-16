@@ -1,6 +1,7 @@
 import cv2
 
 from state_manager import GameState, GameStateManager
+from util.clock_data import get_clock_roi, get_ingame_time
 from util.minimap_data import *
 
 def run_video_tracker(video_path):
@@ -8,6 +9,8 @@ def run_video_tracker(video_path):
 
     state_manager = GameStateManager()
 
+    frame_counter = 0
+    ingame_time = 0
     while True:
         ret, frame = cap.read()
         if not ret: break
@@ -15,9 +18,15 @@ def run_video_tracker(video_path):
         # 1. Slice out the perfectly clean minimap
         clean_roi = get_minimap_roi(frame)
 
+        clock_roi = get_clock_roi(frame)
+        if frame_counter % 30 == 0:
+            ingame_time = get_ingame_time(clock_roi)
+        cv2.putText(frame, f"TIME: {ingame_time}", (500, 100),
+                    cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 3)
+
         game_state = state_manager.get_smoothed_state(clean_roi)
 
-        cv2.putText(frame, f"STATE: {game_state.name}", (50, 50),
+        cv2.putText(frame, f"STATE: {game_state.name}", (500, 50),
                     cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 3)
 
         # 3. CREATE A CANVAS AND DRAW THE DATA
@@ -58,7 +67,15 @@ def run_video_tracker(video_path):
 
         cv2.imshow("Minimap Analysis (2x Zoom)", zoomed_minimap)
 
+        time_canvas = clock_roi.copy()
+        time_height, time_width = time_canvas.shape[:2]
+        zoomed_clock = cv2.resize(time_canvas, (time_width * 2, time_height * 2))
+
+        cv2.imshow("Clock Analysis (2x Zoom)", zoomed_clock)
+
         if cv2.waitKey(1) & 0xFF == ord('q'): break
+
+        frame_counter += 1
 
     cap.release()
     cv2.destroyAllWindows()
