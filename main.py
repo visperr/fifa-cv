@@ -6,8 +6,8 @@ from util.process_video import process_video
 from util.realtime_video import run_video_tracker
 
 if __name__ == '__main__':
-    run_video_tracker("tests/clips/goal.mp4")
-    # save_tracking_data(process_video("testclip.mp4"), "output.json")
+    run_video_tracker("tests/clips/throwin.mp4")
+    # save_tracking_data(process_video("tests/clips/throwin.mp4"), "throwin.json")
 
     # with open("output.json", "r") as f:
     #     data = json.load(f)
