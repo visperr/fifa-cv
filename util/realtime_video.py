@@ -50,7 +50,7 @@ def run_video_tracker(video_path):
 
         # 4. Stitch and Display
         frame[Y_START:Y_END, X_START:X_END] = drawn_canvas
-        display_frame = cv2.resize(frame, (1920, 1080))
+        display_frame = cv2.resize(frame, (1280, 720))
         cv2.imshow("EA FC Clean Tracker", display_frame)
 
         minimap_height, minimap_width = drawn_canvas.shape[:2]
