@@ -84,32 +84,55 @@ def get_opponents(roi_frame):
 
 
 def get_ball(clean_roi):
-    hsv_roi = cv2.cvtColor(clean_roi, cv2.COLOR_BGR2HSV)
-
     lower_orange = BALL_MASK[0]
     upper_orange = BALL_MASK[1]
 
-    mask = cv2.inRange(hsv_roi, lower_orange, upper_orange)
+    mask = cv2.inRange(clean_roi, lower_orange, upper_orange)
 
     kernel = np.ones((3, 3), np.uint8)
-
     clean_mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
 
     contours, _ = cv2.findContours(clean_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-    # Define your minimum and maximum pixel areas
-    MIN_AREA = 25
-    MAX_AREA = 75
+    MIN_AREA = 10
+    MAX_AREA = 30
+
+    best_candidate = None
+    best_aspect_diff = float('inf')
 
     for cnt in contours:
         area = cv2.contourArea(cnt)
 
-        # Check if the blob passes our size test
+        # 1. The Size Test
         if MIN_AREA <= area <= MAX_AREA:
             x, y, bw, bh = cv2.boundingRect(cnt)
-            return x, y, bw, bh
 
-    return None
+            # 2. The Aspect Ratio Test (Width divided by Height)
+            # A perfect square is 1.0. We allow a little bit of stretch (0.7 to 1.3)
+            aspect_ratio = float(bw) / float(bh)
+
+            if 0.7 < aspect_ratio < 1.3:
+
+                # 3. The Solidity Test (Contour Area divided by Bounding Hull Area)
+                hull = cv2.convexHull(cnt)
+                hull_area = cv2.contourArea(hull)
+
+                if hull_area > 0:
+                    solidity = float(area) / hull_area
+
+                    # A cross has missing corners, so it shouldn't be a solid 1.0 block!
+                    if 0.35 < solidity < 0.85:
+
+                        # If multiple blobs pass all tests, we mathematically pick the
+                        # one that is closest to a perfect square (aspect ratio of 1.0)
+                        diff = abs(1.0 - aspect_ratio)
+                        if diff < best_aspect_diff:
+                            best_aspect_diff = diff
+                            best_candidate = (x, y, bw, bh)
+
+    # Returns the absolute best match, or None if the ball is covered up by players
+
+    return best_candidate
 
 
 def get_team(clean_roi):
