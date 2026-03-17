@@ -90,7 +90,7 @@ def apply_colour_debugger(window_name, roi, zoom_scale=2):
         # Tall slices stack side-by-side
         display_panel = np.hstack((p_roi, p_mask, p_res))
 
-    cv2.putText(display_panel, "Original | Mask | Result", (10, 20),
+    cv2.putText(display_panel, "Or|Ma|Res", (10, 20),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.25, (0, 255, 255), 1)
 
     # Add one final outer border around the entire panel

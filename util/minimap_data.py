@@ -26,6 +26,11 @@ MINIMAP_LINES_MASKS = [
     ]
 ]
 
+BALL_MASK = [
+    np.array([0, 170, 175]),
+    np.array([100, 255, 255])
+]
+
 def get_minimap_dims():
     return X_END - X_START, Y_END - Y_START
 
@@ -81,8 +86,8 @@ def get_opponents(roi_frame):
 def get_ball(clean_roi):
     hsv_roi = cv2.cvtColor(clean_roi, cv2.COLOR_BGR2HSV)
 
-    lower_orange = np.array([5, 100, 100])
-    upper_orange = np.array([35, 255, 255])
+    lower_orange = BALL_MASK[0]
+    upper_orange = BALL_MASK[1]
 
     mask = cv2.inRange(hsv_roi, lower_orange, upper_orange)
 

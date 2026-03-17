@@ -36,6 +36,12 @@ def run_video_tracker(video_path):
         default_upper=MINIMAP_LINES_MASKS[0][1]
     )
 
+    setup_colour_debugger(
+        "BALL TUNER",
+        default_lower=BALL_MASK[0],
+        default_upper=BALL_MASK[1]
+    )
+
     is_paused = False
     frame_counter = 0
     ingame_time = 0
@@ -60,6 +66,9 @@ def run_video_tracker(video_path):
 
         # 3. CREATE A CANVAS AND DRAW THE DATA
         drawn_canvas = clean_roi.copy()
+
+        apply_colour_debugger("BALL TUNER", drawn_canvas, zoom_scale=2)
+
 
         if game_state == GameState.IN_GAME:
             # 2. DO ALL THE MATHS (Using the clean image every time!)
@@ -111,6 +120,7 @@ def run_video_tracker(video_path):
         zoomed_minimap = cv2.resize(drawn_canvas, (minimap_width * 2, minimap_height * 2))
 
         cv2.imshow("Minimap Analysis (2x Zoom)", zoomed_minimap)
+
 
         time_canvas = clock_roi.copy()
         time_height, time_width = time_canvas.shape[:2]
