@@ -1,7 +1,10 @@
 import cv2
+import numpy as np
 
 from state_manager import GameState, GameStateManager
 from util.clock_data import get_clock_roi, get_ingame_time
+from util.mask_viewer import setup_colour_debugger, apply_colour_debugger, setup_multiple_colour_debugger, \
+    apply_multi_colour_debugger
 from util.minimap_data import *
 
 def run_video_tracker(video_path):
@@ -9,11 +12,37 @@ def run_video_tracker(video_path):
 
     state_manager = GameStateManager()
 
+    setup_multiple_colour_debugger(
+        "UI Border Tuning Multi",
+        default_lower=[
+            MINIMAP_LINES_MASKS[1][0],
+            MINIMAP_LINES_MASKS[1][2]
+        ],
+        default_upper=[
+            MINIMAP_LINES_MASKS[1][1],
+            MINIMAP_LINES_MASKS[1][3]
+        ]
+    )
+
+    setup_colour_debugger(
+        "UI Border Tuning",
+        default_lower=MINIMAP_LINES_MASKS[0][0],
+        default_upper=MINIMAP_LINES_MASKS[0][1]
+    )
+
+    setup_colour_debugger(
+        "UI Border Tuning 2",
+        default_lower=MINIMAP_LINES_MASKS[0][0],
+        default_upper=MINIMAP_LINES_MASKS[0][1]
+    )
+
+    is_paused = False
     frame_counter = 0
     ingame_time = 0
     while True:
-        ret, frame = cap.read()
-        if not ret: break
+        if not is_paused:
+            ret, frame = cap.read()
+            if not ret: break
 
         # 1. Slice out the perfectly clean minimap
         clean_roi = get_minimap_roi(frame)
@@ -59,6 +88,22 @@ def run_video_tracker(video_path):
 
         # 4. Stitch and Display
         frame[Y_START:Y_END, X_START:X_END] = drawn_canvas
+
+
+        TARGET_X1, START_Y1, END_Y1 = 806, 929, 960
+        TARGET_X2, START_Y2, END_Y2 = 1110, 929, 960
+
+        ui_border_roi = frame[START_Y1:END_Y1, TARGET_X1:TARGET_X1 + 1]
+        apply_colour_debugger("UI Border Tuning", ui_border_roi, zoom_scale=4)
+
+        ui_border_roi = frame[START_Y2:END_Y2, TARGET_X2:TARGET_X2 + 1]
+        apply_colour_debugger("UI Border Tuning 2", ui_border_roi, zoom_scale=4)
+
+        START_X, END_X, TARGET_Y = 816, 1099 , 1031
+        ui_bottom_roi = frame[TARGET_Y:TARGET_Y+1, START_X:END_X]
+        apply_multi_colour_debugger("UI Border Tuning Multi", ui_bottom_roi, 2, zoom_scale=4)
+
+
         display_frame = cv2.resize(frame, (1280, 720))
         cv2.imshow("EA FC Clean Tracker", display_frame)
 
@@ -73,7 +118,11 @@ def run_video_tracker(video_path):
 
         cv2.imshow("Clock Analysis (2x Zoom)", zoomed_clock)
 
-        if cv2.waitKey(1) & 0xFF == ord('q'): break
+        key = cv2.waitKey(1) & 0xFF
+        if key == ord("q"):
+            break
+        elif key == ord(" "):
+            is_paused = not is_paused
 
         frame_counter += 1
 

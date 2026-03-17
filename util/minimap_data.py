@@ -8,11 +8,38 @@ Y_END = 1040
 X_START = 800
 X_END = 1115
 
+
+MINIMAP_LINES_MASKS = [
+    # SIDE LINES
+    [
+        np.array([120, 175, 150]),
+        np.array([175, 255, 190])
+    ],
+    # BOTTOM LINE
+    [
+        # WHITE PART
+        np.array([110, 175, 120]),
+        np.array([180, 255, 255]),
+        # BLACK PART
+        np.array([0, 0, 0]),
+        np.array([20, 75, 35]),
+    ]
+]
+
 def get_minimap_dims():
     return X_END - X_START, Y_END - Y_START
 
 def get_minimap_roi(frame):
     return frame[Y_START:Y_END, X_START:X_END]
+
+def count_visible_pixels(frame, mask):
+
+    masked = cv2.inRange(frame, mask[0], mask[1])
+
+    total = frame.shape[0] * frame.shape[1]
+    matched = cv2.countNonZero(masked)
+
+    return matched, total
 
 
 def get_opponents(roi_frame):
@@ -154,3 +181,7 @@ def get_controlled_player(clean_roi):
                 return centre_x, centre_y
 
     return None
+
+
+def minimap_visible(roi):
+    pass
