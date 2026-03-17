@@ -31,6 +31,21 @@ BALL_MASK = [
     np.array([100, 255, 255])
 ]
 
+TEAM_MASK = [
+    np.array([26, 0, 0]),
+    np.array([132, 50, 60])
+]
+
+CONTROLLED_MASK = [
+    np.array([24, 0, 69]),
+    np.array([150, 50, 150])
+]
+
+OPPONENT_MASK = [
+    np.array([200, 200, 200]),
+    np.array([255, 255, 255])
+]
+
 def get_minimap_dims():
     return X_END - X_START, Y_END - Y_START
 
@@ -47,43 +62,70 @@ def count_visible_pixels(frame, mask):
     return matched, total
 
 
-def get_opponents(roi_frame):
+def get_opponents(clean_roi, debug=False):
     """
-    Uses the Hough Gradient method to find translucent circles incredibly quickly.
-    Returns the frame with circles drawn, and a list of coordinates.
+    Uses your tuned BGR mask and Contour Circularity maths to find the round opponent icons!
     """
+    lower_opp = OPPONENT_MASK[0]
+    upper_opp = OPPONENT_MASK[1]
 
-    # 1. Convert to grayscale (HoughCircles only works on greyscale)
-    gray_roi = cv2.cvtColor(roi_frame, cv2.COLOR_BGR2GRAY)
+    mask = cv2.inRange(clean_roi, lower_opp, upper_opp)
 
-    # 2. Add a slight blur!
-    # This is CRUCIAL. It smooths out the messy grass textures bleeding through,
-    # but keeps the strong geometric edges of the UI dots.
-    blurred_roi = cv2.medianBlur(gray_roi, 3)
+    kernel = np.ones((2, 2), np.uint8)
+    clean_mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
 
-    # 3. The Mathematics: Hough Circle Transform
-    circles = cv2.HoughCircles(
-        blurred_roi,
-        cv2.HOUGH_GRADIENT,
-        dp=1.2,           # Resolution of the accumulator (1.2 is a safe standard)
-        minDist=10,       # The minimum distance between two circles (stops double-counting)
-        param1=50,        # Sensitivity of the internal edge detector (Canny)
-        param2=20,        # The "Perfect Circle" test. Lower = finds more, Higher = stricter
-        minRadius=4,      # MINIMUM size of an opponent dot in pixels
-        maxRadius=8      # MAXIMUM size of an opponent dot in pixels
-    )
+    contours, _ = cv2.findContours(clean_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    if debug:
+        canv = cv2.cvtColor(clean_mask, cv2.COLOR_GRAY2BGR)
 
     opponent_data = []
-    if circles is not None:
-        circles = np.uint16(np.around(circles))
-        for circle in circles[0, :]:
-            # Save the x, y, and radius so we can draw it later
-            opponent_data.append((circle[0], circle[1], circle[2]))
+
+    for cnt in contours:
+        area = cv2.contourArea(cnt)
+
+        # 3. Size check (tune these to your minimap size)
+        if 10 < area < 75:
+            x, y, w, h = cv2.boundingRect(cnt)
+
+            if debug: cv2.rectangle(canv, (x, y), (x + w, y + h), (0, 0, 255), 1)
+
+            # 4. The Circularity Test!
+            # We measure the perimeter to see how perfectly round the blob is
+            perimeter = cv2.arcLength(cnt, True)
+
+            # Prevent the script from crashing if the blob is just a single dot!
+            if perimeter == 0:
+                continue
+
+            # The magic maths formula for a perfect circle
+            circularity = 4 * np.pi * (area / (perimeter * perimeter))
+
+            # A perfect circle is 1.0. Squares sit around 0.78.
+            # We allow a little wiggle room (0.75 to 1.2) for blurry pixels!
+            if 0.75 < circularity <= 1.2:
+                M = cv2.moments(cnt)
+                if M["m00"] != 0:
+                    centre_x = int(M["m10"] / M["m00"])
+                    centre_y = int(M["m01"] / M["m00"])
+
+                    # We estimate the radius (half the width) so it perfectly
+                    # matches the output format of your old HoughCircles code!
+                    radius = int(w / 2)
+                    opponent_data.append((centre_x, centre_y, radius))
+
+                    # Draw the accepted, mathematically perfect circles in green!
+                    if debug: cv2.circle(canv, (centre_x, centre_y), radius, (0, 255, 0), 2)
+
+    if debug:
+        height, width = canv.shape[:2]
+        zoomed_canv = cv2.resize(canv, (width * 3, height * 3))
+        cv2.imshow("Opponent Tracker Debug", zoomed_canv)
 
     return opponent_data
 
 
-def get_ball(clean_roi):
+def get_ball(clean_roi, debug=False):
     lower_orange = BALL_MASK[0]
     upper_orange = BALL_MASK[1]
 
@@ -100,12 +142,19 @@ def get_ball(clean_roi):
     best_candidate = None
     best_aspect_diff = float('inf')
 
+    if debug: canv = cv2.cvtColor(clean_mask, cv2.COLOR_GRAY2BGR)
+
     for cnt in contours:
         area = cv2.contourArea(cnt)
 
         # 1. The Size Test
         if MIN_AREA <= area <= MAX_AREA:
             x, y, bw, bh = cv2.boundingRect(cnt)
+
+            if debug:
+                cv2.rectangle(canv, (x, y), (x + bw, y + bh), (0, 255, 0), 2)
+                cv2.putText(canv, f"Area {area}", (x, y),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.25, (0, 255, 0), 1)
 
             # 2. The Aspect Ratio Test (Width divided by Height)
             # A perfect square is 1.0. We allow a little bit of stretch (0.7 to 1.3)
@@ -132,81 +181,121 @@ def get_ball(clean_roi):
 
     # Returns the absolute best match, or None if the ball is covered up by players
 
+    if debug:
+        if best_candidate is not None:
+            (x, y, bw, bh) = best_candidate
+            cv2.rectangle(canv, (x, y), (x + bw, y + bh), (0, 0, 255), 3)
+
+            # Zoom it in a bit so you don't have to squint at the tiny numbers
+        height, width = canv.shape[:2]
+        zoomed_canv = cv2.resize(canv, (width * 3, height * 3))
+        cv2.imshow("BALL thingy", zoomed_canv)
+
     return best_candidate
 
 
-def get_team(clean_roi):
+def get_team(clean_roi, debug=False):
     """
-    Finds your players using colour and the 'Extent' property,
-    completely ignoring blurry corners.
+    Finds your players using your tuned BGR colour and the 'Extent' property,
+    completely ignoring blurry noise.
     """
-    hsv_roi = cv2.cvtColor(clean_roi, cv2.COLOR_BGR2HSV)
+    lower_team = TEAM_MASK[0]
+    upper_team = TEAM_MASK[1]
 
-    # 1. Your tuned colour filter for your team
-    lower_team = np.array([55, 20, 20])
-    upper_team = np.array([150, 200, 200])
-
-    mask = cv2.inRange(hsv_roi, lower_team, upper_team)
+    mask = cv2.inRange(clean_roi, lower_team, upper_team)
 
     kernel = np.ones((3, 3), np.uint8)
-    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
+    clean_mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
 
-    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    contours, _ = cv2.findContours(clean_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    if debug: canv = cv2.cvtColor(clean_mask, cv2.COLOR_GRAY2BGR)
 
     team_coords = []
     for cnt in contours:
         contour_area = cv2.contourArea(cnt)
 
-        # 2. Basic size check (tune these to your UI)
-        if 10 < contour_area < 75:
-
-            # 3. Get the Bounding Box dimensions
+        # 3. Basic size check (tune these to your minimap size)
+        if 2 < contour_area < 30:
             x, y, w, h = cv2.boundingRect(cnt)
 
-            # Calculate the centre using moments
-            M = cv2.moments(cnt)
-            if M["m00"] != 0:
-                centre_x = int(M["m10"] / M["m00"])
-                centre_y = int(M["m01"] / M["m00"])
+            if debug: cv2.rectangle(canv, (x, y), (x + w, y + h), (0, 0, 255), 1)
 
-                team_coords.append((centre_x, centre_y))
+            # 4. The Extent Test
+            bounding_box_area = w * h
+            extent = float(contour_area) / bounding_box_area
+
+            # A solid circle/triangle usually has an extent above 0.25
+            if extent > 0.25:
+                M = cv2.moments(cnt)
+                if M["m00"] != 0:
+                    centre_x = int(M["m10"] / M["m00"])
+                    centre_y = int(M["m01"] / M["m00"])
+
+                    team_coords.append((centre_x, centre_y))
+
+                    if debug: cv2.rectangle(canv, (x, y), (x + w, y + h), (0, 255, 0), 2)
+
+    if debug:
+        height, width = canv.shape[:2]
+        zoomed_canv = cv2.resize(canv, (width * 3, height * 3))
+        cv2.imshow("Team Tracker Debug", zoomed_canv)
 
     return team_coords
 
-def get_controlled_player(clean_roi):
-    """
-    Finds your players using colour and the 'Extent' property,
-    completely ignoring blurry corners.
-    """
-    hsv_roi = cv2.cvtColor(clean_roi, cv2.COLOR_BGR2HSV)
 
-    # 1. Your tuned colour filter for your team
-    lower_team = np.array([120, 20, 20])
-    upper_team = np.array([179, 200, 200])
+def get_controlled_player(clean_roi, debug=False):
+    """
+    Finds your currently controlled player using tuned BGR colours and the 'Extent' property.
+    Draws a visual debug canvas so you can see exactly what it is testing.
+    """
 
-    mask = cv2.inRange(hsv_roi, lower_team, upper_team)
+    lower_controlled = CONTROLLED_MASK[0]
+    upper_controlled = CONTROLLED_MASK[1]
+
+    mask = cv2.inRange(clean_roi, lower_controlled, upper_controlled)
 
     kernel = np.ones((3, 3), np.uint8)
-    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
+    clean_mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
 
-    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    contours, _ = cv2.findContours(clean_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    if debug: canv = cv2.cvtColor(clean_mask, cv2.COLOR_GRAY2BGR)
 
     for cnt in contours:
         contour_area = cv2.contourArea(cnt)
 
-        # 2. Basic size check (tune these to your UI)
-        if 10 < contour_area < 75:
-
-            # 3. Get the Bounding Box dimensions
+        # 3. Basic size check
+        if 2 < contour_area < 40:
             x, y, w, h = cv2.boundingRect(cnt)
 
-            # Calculate the centre using moments
-            M = cv2.moments(cnt)
-            if M["m00"] != 0:
-                centre_x = int(M["m10"] / M["m00"])
-                centre_y = int(M["m01"] / M["m00"])
+            if debug: cv2.rectangle(canv, (x, y), (x + w, y + h), (0, 0, 255), 1)
 
-                return centre_x, centre_y
+            # 4. The Extent Test (Area of contour / Area of bounding box)
+            bounding_box_area = w * h
+            extent = float(contour_area) / bounding_box_area
+
+            # If it's a solid shape (extent > 0.25), we have found our player!
+            if extent > 0.25:
+                M = cv2.moments(cnt)
+                if M["m00"] != 0:
+                    centre_x = int(M["m10"] / M["m00"])
+                    centre_y = int(M["m01"] / M["m00"])
+
+                    if debug:
+                        cv2.rectangle(canv, (x, y), (x + w, y + h), (0, 255, 0), 2)
+
+                        height, width = canv.shape[:2]
+                        zoomed_canv = cv2.resize(canv, (width * 3, height * 3))
+                        cv2.imshow("Controlled Player Debug", zoomed_canv)
+
+                    # Return the very first one that passes all the maths
+                    return centre_x, centre_y
+
+    if debug:
+        height, width = canv.shape[:2]
+        zoomed_canv = cv2.resize(canv, (width * 3, height * 3))
+        cv2.imshow("Controlled Player Debug", zoomed_canv)
 
     return None
 

@@ -12,35 +12,52 @@ def run_video_tracker(video_path):
 
     state_manager = GameStateManager()
 
-    setup_multiple_colour_debugger(
-        "UI Border Tuning Multi",
-        default_lower=[
-            MINIMAP_LINES_MASKS[1][0],
-            MINIMAP_LINES_MASKS[1][2]
-        ],
-        default_upper=[
-            MINIMAP_LINES_MASKS[1][1],
-            MINIMAP_LINES_MASKS[1][3]
-        ]
-    )
+    # setup_multiple_colour_debugger(
+    #     "UI Border Tuning Multi",
+    #     default_lower=[
+    #         MINIMAP_LINES_MASKS[1][0],
+    #         MINIMAP_LINES_MASKS[1][2]
+    #     ],
+    #     default_upper=[
+    #         MINIMAP_LINES_MASKS[1][1],
+    #         MINIMAP_LINES_MASKS[1][3]
+    #     ]
+    # )
+    #
+    # setup_colour_debugger(
+    #     "UI Border Tuning",
+    #     default_lower=MINIMAP_LINES_MASKS[0][0],
+    #     default_upper=MINIMAP_LINES_MASKS[0][1]
+    # )
+    #
+    # setup_colour_debugger(
+    #     "UI Border Tuning 2",
+    #     default_lower=MINIMAP_LINES_MASKS[0][0],
+    #     default_upper=MINIMAP_LINES_MASKS[0][1]
+    # )
 
-    setup_colour_debugger(
-        "UI Border Tuning",
-        default_lower=MINIMAP_LINES_MASKS[0][0],
-        default_upper=MINIMAP_LINES_MASKS[0][1]
-    )
+    # setup_colour_debugger(
+    #     "BALL TUNER",
+    #     default_lower=BALL_MASK[0],
+    #     default_upper=BALL_MASK[1]
+    # )
+    #
+    # setup_colour_debugger(
+    #     "TEAM TUNER",
+    #     default_lower=TEAM_MASK[0],
+    #     default_upper=TEAM_MASK[1]
+    # )
 
-    setup_colour_debugger(
-        "UI Border Tuning 2",
-        default_lower=MINIMAP_LINES_MASKS[0][0],
-        default_upper=MINIMAP_LINES_MASKS[0][1]
-    )
-
-    setup_colour_debugger(
-        "BALL TUNER",
-        default_lower=BALL_MASK[0],
-        default_upper=BALL_MASK[1]
-    )
+    # setup_colour_debugger(
+    #     "CONTROLLED TUNER",
+    #     default_lower=CONTROLLED_MASK[0],
+    #     default_upper=CONTROLLED_MASK[1]
+    # )
+    # setup_colour_debugger(
+    #     "OPPONENT TUNER",
+    #     default_lower=OPPONENT_MASK[0],
+    #     default_upper=OPPONENT_MASK[1]
+    # )
 
     is_paused = False
     frame_counter = 0
@@ -67,8 +84,10 @@ def run_video_tracker(video_path):
         # 3. CREATE A CANVAS AND DRAW THE DATA
         drawn_canvas = clean_roi.copy()
 
-        apply_colour_debugger("BALL TUNER", drawn_canvas, zoom_scale=2)
-
+        # apply_colour_debugger("TEAM TUNER", drawn_canvas, zoom_scale=2)
+        # apply_colour_debugger("OPPONENT TUNER", drawn_canvas, zoom_scale=2)
+        # apply_colour_debugger("BALL TUNER", drawn_canvas, zoom_scale=2)
+        # apply_colour_debugger("CONTROLLED TUNER", drawn_canvas, zoom_scale=2)
 
         if game_state == GameState.IN_GAME:
             # 2. DO ALL THE MATHS (Using the clean image every time!)
@@ -99,18 +118,18 @@ def run_video_tracker(video_path):
         frame[Y_START:Y_END, X_START:X_END] = drawn_canvas
 
 
-        TARGET_X1, START_Y1, END_Y1 = 806, 929, 960
-        TARGET_X2, START_Y2, END_Y2 = 1110, 929, 960
-
-        ui_border_roi = frame[START_Y1:END_Y1, TARGET_X1:TARGET_X1 + 1]
-        apply_colour_debugger("UI Border Tuning", ui_border_roi, zoom_scale=4)
-
-        ui_border_roi = frame[START_Y2:END_Y2, TARGET_X2:TARGET_X2 + 1]
-        apply_colour_debugger("UI Border Tuning 2", ui_border_roi, zoom_scale=4)
-
-        START_X, END_X, TARGET_Y = 816, 1099 , 1031
-        ui_bottom_roi = frame[TARGET_Y:TARGET_Y+1, START_X:END_X]
-        apply_multi_colour_debugger("UI Border Tuning Multi", ui_bottom_roi, 2, zoom_scale=4)
+        # TARGET_X1, START_Y1, END_Y1 = 806, 929, 960
+        # TARGET_X2, START_Y2, END_Y2 = 1110, 929, 960
+        #
+        # ui_border_roi = frame[START_Y1:END_Y1, TARGET_X1:TARGET_X1 + 1]
+        # apply_colour_debugger("UI Border Tuning", ui_border_roi, zoom_scale=4)
+        #
+        # ui_border_roi = frame[START_Y2:END_Y2, TARGET_X2:TARGET_X2 + 1]
+        # apply_colour_debugger("UI Border Tuning 2", ui_border_roi, zoom_scale=4)
+        #
+        # START_X, END_X, TARGET_Y = 816, 1099 , 1031
+        # ui_bottom_roi = frame[TARGET_Y:TARGET_Y+1, START_X:END_X]
+        # apply_multi_colour_debugger("UI Border Tuning Multi", ui_bottom_roi, 2, zoom_scale=4)
 
 
         display_frame = cv2.resize(frame, (1280, 720))
