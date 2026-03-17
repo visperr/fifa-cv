@@ -1,3 +1,4 @@
+import json
 import math
 
 import cv2
@@ -143,6 +144,56 @@ def generate_better_heatmap(coords_list, title):
     plt.show()
     # Show the gorgeous, complete graphic!
     plt.show()
+
+
+def generate_heatmap_from_json(file):
+    with open(file, "r") as f:
+        data = json.load(f)
+
+        heatmaps = {
+            "Ball Positioning": extract_coords_for_heatmap(data["frames"], "ball"),
+            "Opponent Positioning": extract_coords_for_heatmap(data["frames"], "opponents"),
+            "Team Positioning": extract_coords_for_heatmap(data["frames"], "team"),
+            "Controlled Player Positioning": extract_coords_for_heatmap(data["frames"], "controlled_player"),
+        }
+
+        generate_heatmap_dashboard(heatmaps)
+
+
+def extract_coords_for_heatmap(new_stored_data, target_key):
+    """
+    Safely unpacks frame data into a flat list of (x, y) tuples.
+    Smartly handles null values, empty lists, flat lists, and nested lists!
+    """
+    flat_coordinates = []
+
+    for frame_data in new_stored_data:
+        # 1. Grab the data from the dictionary
+        data_point = frame_data.get(target_key)
+
+        # 2. The Safety Net
+        # If the data is 'null' (None) or an empty list '[]', we just skip this frame entirely!
+        if not data_point:
+            continue
+
+        # 3. The Shape Sorter
+        # We look at the very first item inside the list to see what we are dealing with.
+        first_item = data_point[0]
+
+        if isinstance(first_item, (int, float)):
+            # SCENARIO A: It is a flat list of numbers (e.g., ball: [285, 102])
+            # We package the first two numbers into a tuple and append it.
+            flat_coordinates.append((data_point[0], data_point[1]))
+
+        elif isinstance(first_item, list):
+            # SCENARIO B: It is a list of lists (e.g., opponents: [[285, 162], [167, 146]])
+            # We loop through every player in that specific frame.
+            for player in data_point:
+                # Extra safety check just in case a player array got cut short
+                if len(player) >= 2:
+                    flat_coordinates.append((player[0], player[1]))
+
+    return flat_coordinates
 
 
 def generate_heatmap_dashboard(data_dict):
