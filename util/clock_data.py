@@ -1,5 +1,9 @@
 import cv2
 import easyocr
+import numpy as np
+
+from util.minimap_data import count_visible_pixels
+from util.screenlogger import logger
 
 # 1. Initialise the reader OUTSIDE your loop.
 # We tell it we only want English ('en').
@@ -12,6 +16,17 @@ Y_START = 104
 Y_END = 150
 X_START = 85
 X_END = 160
+
+CLOCK_MASKS = [
+    [
+        np.array([220, 220, 220]),
+        np.array([255, 255, 255]),
+    ],
+    [
+        np.array([0, 0, 0]),
+        np.array([30, 30, 30]),
+    ]
+]
 
 def get_clock_dims():
     return X_END - X_START, Y_END - Y_START
@@ -39,3 +54,24 @@ def get_ingame_time(clock_roi):
         return results[0].strip()
     else:
         return -1
+
+def is_clock_visible(roi, debug=False):
+
+    master_mask = np.zeros(roi.shape[:2], dtype=np.uint8)
+    for i in range(2):
+        current_mask = cv2.inRange(roi, CLOCK_MASKS[i][0], CLOCK_MASKS[i][1])
+        master_mask = cv2.bitwise_or(master_mask, current_mask)
+
+    num_pixels, total_pixels = count_visible_pixels(master_mask)
+
+    threshold = 0.85
+    is_visible = num_pixels / total_pixels > threshold
+
+    logger.push(f"Clock visible: {is_visible} ({round(num_pixels / total_pixels, 2) * 100}% > {threshold * 100}%)")
+
+    if debug:
+        height, width = master_mask.shape[:2]
+        zoomed_clock_mask = cv2.resize(master_mask, (width * 3, height * 3))
+        cv2.imshow("Master Mask CLOCK", zoomed_clock_mask)
+
+    return is_visible

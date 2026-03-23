@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 
 from state_manager import GameState, GameStateManager
-from util.clock_data import get_clock_roi, get_ingame_time
+from util.clock_data import get_clock_roi, get_ingame_time, is_clock_visible
 from util.mask_viewer import setup_colour_debugger, apply_colour_debugger, setup_multiple_colour_debugger, \
     apply_multi_colour_debugger
 from util.minimap_data import *
@@ -84,13 +84,13 @@ def run_video_tracker(video_path):
         clock_roi = get_clock_roi(frame)
         if frame_counter % 30 == 0:
             ingame_time = get_ingame_time(clock_roi)
-        cv2.putText(frame, f"TIME: {ingame_time}", (500, 100),
-                    cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 3)
+
+        logger.push(f"Frame: {frame_counter}")
+        logger.push(f"Game Time: {ingame_time}")
 
         game_state = state_manager.get_smoothed_state(clean_roi)
 
-        cv2.putText(frame, f"STATE: {game_state.name}", (500, 50),
-                    cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 3)
+        logger.push(f"Game State: {game_state.name}")
 
         # 3. CREATE A CANVAS AND DRAW THE DATA
         drawn_canvas = clean_roi.copy()
@@ -104,9 +104,6 @@ def run_video_tracker(video_path):
         clock_visible = is_clock_visible(clock_roi)
 
         minimap_visible = is_minimap_visible(frame)
-
-        cv2.putText(frame, f"CLOCK_VISIBLE: {clock_visible}", (500, 80),
-                    cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 3)
 
         if game_state == GameState.IN_GAME:
             # 2. DO ALL THE MATHS (Using the clean image every time!)
