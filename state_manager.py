@@ -14,8 +14,8 @@ class GameStateManager:
     def __init__(self, memory_size=15):
         self.history = collections.deque(maxlen=memory_size)
 
-    def get_smoothed_state(self, roi_frame):
-        raw_state = self._get_raw_state(roi_frame)
+    def get_smoothed_state(self, roi_frame, data):
+        raw_state = self._get_raw_state(roi_frame, data)
 
         self.history.append(raw_state)
 
@@ -23,16 +23,11 @@ class GameStateManager:
 
         return smoothed_state
 
-    def _get_raw_state(self, roi_frame):
-        ball_pos = get_ball(roi_frame)
+    def _get_raw_state(self, roi_frame, data):
 
-        if ball_pos is not None:
+        if data["minimap_visible"]:
             return GameState.IN_GAME
-
-        opponent_list = get_opponents(roi_frame)
-
-        # adjust threshold accordingly
-        if len(opponent_list) > 5:
+        elif data["clock_visible"]:
             return GameState.MINIMAP_TRANSPARENT
         else:
             return GameState.CUTSCENE
