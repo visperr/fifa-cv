@@ -41,9 +41,10 @@ def run_video_tracker(video_path):
             "ingame_time": ingame_time,
         }
 
-        game_state = state_manager.get_smoothed_state(clean_roi, game_data)
+        state_manager.push_data(game_data)
+        game_state = state_manager.get_game_state(clean_roi)
 
-        logger.push(f"Game State: {game_state.name}")
+        logger.push(f"Game State: {game_state["state"].name}")
 
         # 3. CREATE A CANVAS AND DRAW THE DATA
         drawn_canvas = clean_roi.copy()
