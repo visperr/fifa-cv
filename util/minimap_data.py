@@ -2,6 +2,8 @@ from pathlib import Path
 import cv2
 import numpy as np
 
+from util.screenlogger import logger
+
 # MINIMAP REGION
 Y_START = 850
 Y_END = 1040
@@ -17,12 +19,14 @@ MINIMAP_LINES_MASKS = [
     ],
     # BOTTOM LINE
     [
-        # WHITE PART
-        np.array([110, 175, 120]),
-        np.array([180, 255, 255]),
-        # BLACK PART
-        np.array([0, 0, 0]),
-        np.array([20, 75, 35]),
+        [
+            np.array([110, 175, 120]),
+            np.array([180, 255, 255]),
+        ],
+        [
+            np.array([0, 0, 0]),
+            np.array([20, 75, 35]),
+        ]
     ]
 ]
 
@@ -46,15 +50,29 @@ OPPONENT_MASK = [
     np.array([255, 255, 255])
 ]
 
+CLOCK_MASKS = [
+    [
+        np.array([220, 220, 220]),
+        np.array([255, 255, 255]),
+    ],
+    [
+        np.array([0, 0, 0]),
+        np.array([30, 30, 30]),
+    ]
+]
+
 def get_minimap_dims():
     return X_END - X_START, Y_END - Y_START
 
 def get_minimap_roi(frame):
     return frame[Y_START:Y_END, X_START:X_END]
 
-def count_visible_pixels(frame, mask):
+def count_visible_pixels(frame, mask=None):
 
-    masked = cv2.inRange(frame, mask[0], mask[1])
+    if mask is None:
+        masked = frame.copy()
+    else:
+        masked = cv2.inRange(frame, mask[0], mask[1])
 
     total = frame.shape[0] * frame.shape[1]
     matched = cv2.countNonZero(masked)
@@ -299,6 +317,66 @@ def get_controlled_player(clean_roi, debug=False):
 
     return None
 
+def is_clock_visible(roi, debug=False):
 
-def minimap_visible(roi):
-    pass
+    master_mask = np.zeros(roi.shape[:2], dtype=np.uint8)
+    for i in range(2):
+        current_mask = cv2.inRange(roi, CLOCK_MASKS[i][0], CLOCK_MASKS[i][1])
+        master_mask = cv2.bitwise_or(master_mask, current_mask)
+
+    num_pixels, total_pixels = count_visible_pixels(master_mask)
+
+    threshold = 0.85
+    is_visible = num_pixels / total_pixels > threshold
+
+    logger.push(f"Clock visible: {is_visible} ({round(num_pixels / total_pixels, 2) * 100}% > {threshold * 100}%)")
+
+    if debug:
+        height, width = master_mask.shape[:2]
+        zoomed_clock_mask = cv2.resize(master_mask, (width * 3, height * 3))
+        cv2.imshow("Master Mask CLOCK", zoomed_clock_mask)
+
+    return is_visible
+
+
+def is_minimap_visible(frame, debug=False):
+
+    TARGETS = [
+        [806, 929, 960],
+        [1110, 929, 960],
+        [816, 1099, 1031]
+    ]
+
+    ui_bottom_roi = frame[TARGETS[2][2]:TARGETS[2][2]+1, TARGETS[2][0]:TARGETS[2][1]]
+    bottom_mask = np.zeros(ui_bottom_roi.shape[:2], dtype=np.uint8)
+    for i in range(2):
+        current_mask = cv2.inRange(ui_bottom_roi, MINIMAP_LINES_MASKS[1][i][0], MINIMAP_LINES_MASKS[1][i][1])
+        bottom_mask = cv2.bitwise_or(bottom_mask, current_mask)
+
+    if debug:
+        height, width = bottom_mask.shape[:2]
+        zoomed_minimap_mask = cv2.resize(bottom_mask, (width * 3, height * 3))
+        cv2.imshow("Minimap bottom row", zoomed_minimap_mask)
+
+    num_pixels, total_pixels = count_visible_pixels(bottom_mask)
+
+    for i in range(2):
+        ui_side_row = frame[TARGETS[i][1]:TARGETS[i][2], TARGETS[i][0]:TARGETS[i][0]+1]
+        side_mask = cv2.inRange(ui_side_row, MINIMAP_LINES_MASKS[0][0], MINIMAP_LINES_MASKS[0][1])
+
+        if debug:
+            height, width = ui_side_row.shape[:2]
+            zoomed_minimap_mask = cv2.resize(side_mask, (width * 3, height * 3))
+            cv2.imshow(f"Minimap side row {i}", zoomed_minimap_mask)
+
+        side_pixels, side_total_pixels = count_visible_pixels(side_mask)
+
+        num_pixels += side_pixels
+        total_pixels += side_total_pixels
+
+    threshold = 0.90
+    is_visible = num_pixels / total_pixels > threshold
+
+    logger.push(f"Minimap visible: {is_visible} ({round(num_pixels / total_pixels, 2) * 100}% > {threshold * 100}%)")
+
+    return is_visible

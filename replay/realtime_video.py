@@ -58,6 +58,17 @@ def run_video_tracker(video_path):
     #     default_lower=OPPONENT_MASK[0],
     #     default_upper=OPPONENT_MASK[1]
     # )
+    # setup_multiple_colour_debugger(
+    #     "CLOCK TUNER",
+    #     default_lower=[
+    #         CLOCK_MASKS[0][0],
+    #         CLOCK_MASKS[1][0]
+    #     ],
+    #     default_upper=[
+    #         CLOCK_MASKS[0][1],
+    #         CLOCK_MASKS[1][1]
+    #     ]
+    # )
 
     is_paused = False
     frame_counter = 0
@@ -88,6 +99,14 @@ def run_video_tracker(video_path):
         # apply_colour_debugger("OPPONENT TUNER", drawn_canvas, zoom_scale=2)
         # apply_colour_debugger("BALL TUNER", drawn_canvas, zoom_scale=2)
         # apply_colour_debugger("CONTROLLED TUNER", drawn_canvas, zoom_scale=2)
+        # apply_multi_colour_debugger("CLOCK TUNER", clock_roi, 2, 2)
+
+        clock_visible = is_clock_visible(clock_roi)
+
+        minimap_visible = is_minimap_visible(frame)
+
+        cv2.putText(frame, f"CLOCK_VISIBLE: {clock_visible}", (500, 80),
+                    cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 3)
 
         if game_state == GameState.IN_GAME:
             # 2. DO ALL THE MATHS (Using the clean image every time!)
@@ -131,6 +150,7 @@ def run_video_tracker(video_path):
         # ui_bottom_roi = frame[TARGET_Y:TARGET_Y+1, START_X:END_X]
         # apply_multi_colour_debugger("UI Border Tuning Multi", ui_bottom_roi, 2, zoom_scale=4)
 
+        logger.update()
 
         display_frame = cv2.resize(frame, (1280, 720))
         cv2.imshow("EA FC Clean Tracker", display_frame)
