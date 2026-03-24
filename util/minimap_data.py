@@ -69,6 +69,7 @@ def count_visible_pixels(frame, mask=None):
     return matched, total
 
 
+
 def get_opponents(clean_roi, debug=False):
     """
     Uses your tuned BGR mask and Contour Circularity maths to find the round opponent icons!
@@ -78,7 +79,7 @@ def get_opponents(clean_roi, debug=False):
 
     mask = cv2.inRange(clean_roi, lower_opp, upper_opp)
 
-    kernel = np.ones((2, 2), np.uint8)
+    kernel = np.ones((3, 3), np.uint8)
     clean_mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
 
     contours, _ = cv2.findContours(clean_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -90,6 +91,10 @@ def get_opponents(clean_roi, debug=False):
 
     for cnt in contours:
         area = cv2.contourArea(cnt)
+
+        if debug:
+            x, y, w, h = cv2.boundingRect(cnt)
+            cv2.rectangle(canv, (x, y), (x + w, y + h), (0, 255, 255), 1)
 
         # 3. Size check (tune these to your minimap size)
         if 10 < area < 75:
@@ -110,6 +115,9 @@ def get_opponents(clean_roi, debug=False):
 
             # A perfect circle is 1.0. Squares sit around 0.78.
             # We allow a little wiggle room (0.75 to 1.2) for blurry pixels!
+            if debug: cv2.putText(canv, f"Circularity {round(circularity, 2)}",
+                                  (x, y),cv2.FONT_HERSHEY_SIMPLEX, 0.25, (0, 0, 255), 1)
+
             if 0.75 < circularity <= 1.2:
                 M = cv2.moments(cnt)
                 if M["m00"] != 0:
