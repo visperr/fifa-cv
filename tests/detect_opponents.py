@@ -1,39 +1,48 @@
 import cv2
 
-from util.find_opponents import track_opponents_fast, get_minimap_roi
+from util.minimap_data import get_minimap_roi, get_opponents
 
 
 def test_find_opponents():
-    img = cv2.imread("minimap/minimap_visible_1.png")
+    img = cv2.imread("screenshots/minimap_visible_1.png")
     roi = get_minimap_roi(img)
-    opponents = track_opponents_fast(roi)
+    opponents = get_opponents(roi, debug=False)
 
-    assert len(opponents) > 5
+    # while True:
+    #     # waitKey(0) freezes the programme indefinitely until a key is pressed
+    #     if cv2.waitKey(1) & 0xFF == ord('q'):
+    #         break
+    #
+    #     # Clean up the windows so they don't get stuck on your screen!
+    # cv2.destroyAllWindows()
 
-def test_find_opponents_2():
-    img = cv2.imread("minimap/minimap_visible_2.png")
+    assert len(opponents) == 11
+
+def test_find_opponents2():
+    img = cv2.imread("screenshots/minimap_visible_2.png")
     roi = get_minimap_roi(img)
-    opponents = track_opponents_fast(roi)
+    opponents = get_opponents(roi, debug=False)
 
-    assert len(opponents) > 5
+    assert len(opponents) == 11
 
-def test_find_opponents_trans():
-    img = cv2.imread("minimap/minimap_trans_1.png")
+def test_find_opponents3():
+    img = cv2.imread("screenshots/minimap_visible_3.png")
     roi = get_minimap_roi(img)
-    opponents = track_opponents_fast(roi)
+    opponents = get_opponents(roi, debug=False)
 
-    assert len(opponents) > 5
+    assert len(opponents) == 10
 
-def test_find_opponents_trans_2():
-    img = cv2.imread("minimap/minimap_trans_2.png")
+def test_find_opponents4():
+    img = cv2.imread("screenshots/minimap_visible_4.png")
     roi = get_minimap_roi(img)
-    opponents = track_opponents_fast(roi)
+    opponents = get_opponents(roi, debug=True)
 
-    assert len(opponents) > 5
+    while True:
+        # waitKey(0) freezes the programme indefinitely until a key is pressed
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
 
-def test_find_opponents_hide():
-    img = cv2.imread("minimap/minimap_hide_1.png")
-    roi = get_minimap_roi(img)
-    opponents = track_opponents_fast(roi)
+        # Clean up the windows so they don't get stuck on your screen!
+    cv2.destroyAllWindows()
 
-    assert len(opponents) < 2
+    assert len(opponents) == 10
