@@ -49,12 +49,17 @@ def run_video_tracker(video_path):
         # 3. CREATE A CANVAS AND DRAW THE DATA
         drawn_canvas = clean_roi.copy()
 
-        if game_state == GameState.IN_GAME:
+        if game_state["state"] == GameState.IN_GAME:
             # 2. DO ALL THE MATHS (Using the clean image every time!)
             opponent_list = get_opponents(clean_roi)
             ball_pos = get_ball(clean_roi)
             team_list = get_team(clean_roi)
             player_pos = get_controlled_player(clean_roi)
+
+            logger.push(f"Amount of detected opponents: {len(opponent_list)}")
+            logger.push(f"Amount of detected teammates: {len(team_list)}")
+            if ball_pos is not None: logger.push(f"Ball position: {ball_pos[0]}, {ball_pos[1]}")
+            if player_pos is not None: logger.push(f"Controlled Player position: {player_pos[0]}, {player_pos[1]}")
 
             # Draw Opponents
             for (x, y, radius) in opponent_list:
