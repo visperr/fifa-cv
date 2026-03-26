@@ -81,12 +81,14 @@ def run_video_tracker(video_path):
 
         # show_debuggers(frame)
 
+        final_frame = frame.copy()
+
         # 4. Stitch and Display
-        frame[Y_START:Y_END, X_START:X_END] = drawn_canvas
+        final_frame[Y_START:Y_END, X_START:X_END] = drawn_canvas
 
         logger.update()
 
-        display_frame = cv2.resize(frame, (1280, 720))
+        display_frame = cv2.resize(final_frame, (1280, 720))
         cv2.imshow("EA FC Clean Tracker", display_frame)
 
         minimap_height, minimap_width = drawn_canvas.shape[:2]
@@ -107,7 +109,7 @@ def run_video_tracker(video_path):
         elif key == ord(" "):
             is_paused = not is_paused
 
-        frame_counter += 1
+        if not is_paused: frame_counter += 1
 
     cap.release()
     cv2.destroyAllWindows()
