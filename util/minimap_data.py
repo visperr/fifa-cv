@@ -2,6 +2,8 @@ from pathlib import Path
 import cv2
 import numpy as np
 
+from util.screenlogger import logger
+
 # MINIMAP REGION
 Y_START = 850
 Y_END = 1040
@@ -17,12 +19,14 @@ MINIMAP_LINES_MASKS = [
     ],
     # BOTTOM LINE
     [
-        # WHITE PART
-        np.array([110, 175, 120]),
-        np.array([180, 255, 255]),
-        # BLACK PART
-        np.array([0, 0, 0]),
-        np.array([20, 75, 35]),
+        [
+            np.array([110, 175, 120]),
+            np.array([180, 255, 255]),
+        ],
+        [
+            np.array([0, 0, 0]),
+            np.array([20, 75, 35]),
+        ]
     ]
 ]
 
@@ -52,14 +56,18 @@ def get_minimap_dims():
 def get_minimap_roi(frame):
     return frame[Y_START:Y_END, X_START:X_END]
 
-def count_visible_pixels(frame, mask):
+def count_visible_pixels(frame, mask=None):
 
-    masked = cv2.inRange(frame, mask[0], mask[1])
+    if mask is None:
+        masked = frame.copy()
+    else:
+        masked = cv2.inRange(frame, mask[0], mask[1])
 
     total = frame.shape[0] * frame.shape[1]
     matched = cv2.countNonZero(masked)
 
     return matched, total
+
 
 
 def get_opponents(clean_roi, debug=False):
@@ -71,7 +79,7 @@ def get_opponents(clean_roi, debug=False):
 
     mask = cv2.inRange(clean_roi, lower_opp, upper_opp)
 
-    kernel = np.ones((2, 2), np.uint8)
+    kernel = np.ones((3, 3), np.uint8)
     clean_mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
 
     contours, _ = cv2.findContours(clean_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -83,6 +91,10 @@ def get_opponents(clean_roi, debug=False):
 
     for cnt in contours:
         area = cv2.contourArea(cnt)
+
+        if debug:
+            x, y, w, h = cv2.boundingRect(cnt)
+            cv2.rectangle(canv, (x, y), (x + w, y + h), (0, 255, 255), 1)
 
         # 3. Size check (tune these to your minimap size)
         if 10 < area < 75:
@@ -103,6 +115,9 @@ def get_opponents(clean_roi, debug=False):
 
             # A perfect circle is 1.0. Squares sit around 0.78.
             # We allow a little wiggle room (0.75 to 1.2) for blurry pixels!
+            if debug: cv2.putText(canv, f"Circularity {round(circularity, 2)}",
+                                  (x, y),cv2.FONT_HERSHEY_SIMPLEX, 0.25, (0, 0, 255), 1)
+
             if 0.75 < circularity <= 1.2:
                 M = cv2.moments(cnt)
                 if M["m00"] != 0:
@@ -300,5 +315,44 @@ def get_controlled_player(clean_roi, debug=False):
     return None
 
 
-def minimap_visible(roi):
-    pass
+def is_minimap_visible(frame, debug=False):
+
+    TARGETS = [
+        [806, 929, 960],
+        [1110, 929, 960],
+        [816, 1099, 1031]
+    ]
+
+    ui_bottom_roi = frame[TARGETS[2][2]:TARGETS[2][2]+1, TARGETS[2][0]:TARGETS[2][1]]
+    bottom_mask = np.zeros(ui_bottom_roi.shape[:2], dtype=np.uint8)
+    for i in range(2):
+        current_mask = cv2.inRange(ui_bottom_roi, MINIMAP_LINES_MASKS[1][i][0], MINIMAP_LINES_MASKS[1][i][1])
+        bottom_mask = cv2.bitwise_or(bottom_mask, current_mask)
+
+    if debug:
+        height, width = bottom_mask.shape[:2]
+        zoomed_minimap_mask = cv2.resize(bottom_mask, (width * 3, height * 3))
+        cv2.imshow("Minimap bottom row", zoomed_minimap_mask)
+
+    num_pixels, total_pixels = count_visible_pixels(bottom_mask)
+
+    for i in range(2):
+        ui_side_row = frame[TARGETS[i][1]:TARGETS[i][2], TARGETS[i][0]:TARGETS[i][0]+1]
+        side_mask = cv2.inRange(ui_side_row, MINIMAP_LINES_MASKS[0][0], MINIMAP_LINES_MASKS[0][1])
+
+        if debug:
+            height, width = ui_side_row.shape[:2]
+            zoomed_minimap_mask = cv2.resize(side_mask, (width * 3, height * 3))
+            cv2.imshow(f"Minimap side row {i}", zoomed_minimap_mask)
+
+        side_pixels, side_total_pixels = count_visible_pixels(side_mask)
+
+        num_pixels += side_pixels
+        total_pixels += side_total_pixels
+
+    threshold = 0.90
+    is_visible = num_pixels / total_pixels > threshold
+
+    logger.push(f"Minimap visible: {is_visible} ({round(num_pixels / total_pixels, 2) * 100}% > {threshold * 100}%)")
+
+    return is_visible
