@@ -2,6 +2,7 @@ import collections
 import statistics
 from enum import Enum
 
+from data.frame_data import FrameData
 from util.minimap_data import *
 
 
@@ -17,11 +18,16 @@ class GameStateManager:
 
         self.ingame_time = "00:00"
         self.last_state = GameState.IN_GAME
+        self.last_frame = None
+        self.frame_data = None
         self.data = {}
 
     def push_data(self, data):
+
+        # Get raw state (Is minimap / clock showing or not?) before being processed
         raw_state = self._get_raw_state(data)
 
+        # Update variables and smooth state
         self.data = data
 
         if len(self.history) > 0:
@@ -30,6 +36,20 @@ class GameStateManager:
         self.history.append(raw_state)
 
         self.ingame_time = data["ingame_time"]
+
+        # Start processing data
+        if self.last_state == GameState.IN_GAME:
+            raw_frame = data["frame"]
+
+            frame_data = FrameData(raw_frame)
+            last_frame = FrameData(self.last_frame)
+            predicted_frame = self.predict_frame_data(frame_data, last_frame)
+
+            self.frame_data = predicted_frame
+
+            # Push new last frame
+            self.last_frame = raw_frame
+
 
     def get_game_state(self, frame):
 
@@ -60,3 +80,12 @@ class GameStateManager:
             return GameState.FOUL
 
         return GameState.CUTSCENE
+
+    def predict_frame_data(self, frame_data, last_frame):
+        if last_frame is None:
+            return frame_data
+
+        predicted_frame = frame_data.copy()
+
+        if predicted_frame.ball is None:
+            # ball_coord =

@@ -1,7 +1,4 @@
-import cv2
-import numpy as np
-
-from state_manager import GameState, GameStateManager
+from data.state_manager import GameState, GameStateManager
 from util.clock_data import get_clock_roi, get_ingame_time, is_clock_visible, CLOCK_MASKS
 from util.mask_viewer import setup_colour_debugger, apply_colour_debugger, setup_multiple_colour_debugger, \
     apply_multi_colour_debugger
@@ -13,6 +10,8 @@ def run_video_tracker(video_path):
     state_manager = GameStateManager()
 
     # setup_debuggers()
+
+
 
     is_paused = False
     frame_counter = 0
@@ -35,13 +34,17 @@ def run_video_tracker(video_path):
         clock_visible = is_clock_visible(clock_roi)
         minimap_visible = is_minimap_visible(frame)
 
-        game_data = {
-            "clock_visible": clock_visible,
-            "minimap_visible": minimap_visible,
-            "ingame_time": ingame_time,
-        }
+        if not is_paused:
+            game_data = {
+                "clock_visible": clock_visible,
+                "minimap_visible": minimap_visible,
+                "ingame_time": ingame_time,
+                "frame": frame,
+                "frame_counter": frame_counter,
+            }
 
-        state_manager.push_data(game_data)
+            state_manager.push_data(game_data)
+
         game_state = state_manager.get_game_state(clean_roi)
 
         logger.push(f"Game State: {game_state["state"].name}")
@@ -80,6 +83,7 @@ def run_video_tracker(video_path):
                 cv2.circle(drawn_canvas, (c_x, c_y), 2, (0, 255, 0), 2)
 
         # show_debuggers(frame)
+
 
         final_frame = frame.copy()
 

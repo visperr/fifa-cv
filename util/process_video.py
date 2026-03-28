@@ -1,5 +1,5 @@
 import cv2
-from state_manager import GameStateManager, GameState
+from data.state_manager import GameStateManager, GameState
 from util.clock_data import get_clock_roi, get_ingame_time
 from util.minimap_data import get_minimap_roi, get_ball, get_opponents, get_team, get_controlled_player
 from tqdm import tqdm
