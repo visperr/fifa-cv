@@ -127,7 +127,7 @@ def get_opponents(clean_roi, debug=False):
                     # We estimate the radius (half the width) so it perfectly
                     # matches the output format of your old HoughCircles code!
                     radius = int(w / 2)
-                    opponent_data.append((centre_x, centre_y, radius))
+                    opponent_data.append((int(centre_x), int(centre_y), int(radius)))
 
                     # Draw the accepted, mathematically perfect circles in green!
                     if debug: cv2.circle(canv, (centre_x, centre_y), radius, (0, 255, 0), 2)
