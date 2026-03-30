@@ -11,7 +11,7 @@ Minimap disappears -> timer disappear -> ball is taken from static somewhere on 
 ### Throwin
 Ball goes over sideline -> minimap disappears -> ball is taken from sideline
 
-### Shot over baseline
+### Goal kick
 Ball goes over baseline -> minimap disappears -> keeper has ball
 
 ### Corner (attack)
