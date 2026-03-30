@@ -8,9 +8,9 @@ from util.process_video import process_video
 
 if __name__ == '__main__':
     # run_video_tracker("testclip.mp4")
-    run_video_tracker("tests/clips/foul.mp4")
+    # run_video_tracker("tests/clips/foul.mp4")
 
-    # save_tracking_data(process_video("testclip.mp4"), "testdata.json")
+    # save_tracking_data(process_video("testclip.mp4"), "smoothed_data.json")
 
-    # generate_heatmap_from_json("testdata.json")
-    # start_replay("testdata.json", "minimap_clean.png")
+    generate_heatmap_from_json("smoothed_data.json")
+    # start_replay("smoothed_data.json", "minimap_clean.png")

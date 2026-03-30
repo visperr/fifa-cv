@@ -1,7 +1,4 @@
-import cv2
-import numpy as np
-
-from state_manager import GameState, GameStateManager
+from data.state_manager import GameState, GameStateManager
 from util.clock_data import get_clock_roi, get_ingame_time, is_clock_visible, CLOCK_MASKS
 from util.mask_viewer import setup_colour_debugger, apply_colour_debugger, setup_multiple_colour_debugger, \
     apply_multi_colour_debugger
@@ -13,6 +10,8 @@ def run_video_tracker(video_path):
     state_manager = GameStateManager()
 
     # setup_debuggers()
+
+
 
     is_paused = False
     frame_counter = 0
@@ -35,13 +34,17 @@ def run_video_tracker(video_path):
         clock_visible = is_clock_visible(clock_roi)
         minimap_visible = is_minimap_visible(frame)
 
-        game_data = {
-            "clock_visible": clock_visible,
-            "minimap_visible": minimap_visible,
-            "ingame_time": ingame_time,
-        }
+        if not is_paused:
+            game_data = {
+                "clock_visible": clock_visible,
+                "minimap_visible": minimap_visible,
+                "ingame_time": ingame_time,
+                "frame": frame,
+                "frame_counter": frame_counter,
+            }
 
-        state_manager.push_data(game_data)
+            state_manager.push_data(game_data)
+
         game_state = state_manager.get_game_state(clean_roi)
 
         logger.push(f"Game State: {game_state["state"].name}")
@@ -50,43 +53,50 @@ def run_video_tracker(video_path):
         drawn_canvas = clean_roi.copy()
 
         if game_state["state"] == GameState.IN_GAME:
-            # 2. DO ALL THE MATHS (Using the clean image every time!)
-            opponent_list = get_opponents(clean_roi)
-            ball_pos = get_ball(clean_roi)
-            team_list = get_team(clean_roi)
-            player_pos = get_controlled_player(clean_roi)
 
-            logger.push(f"Amount of detected opponents: {len(opponent_list)}")
-            logger.push(f"Amount of detected teammates: {len(team_list)}")
-            if ball_pos is not None: logger.push(f"Ball position: {ball_pos[0]}, {ball_pos[1]}")
-            if player_pos is not None: logger.push(f"Controlled Player position: {player_pos[0]}, {player_pos[1]}")
+            frame_data = game_state["frame_data"]
 
-            # Draw Opponents
-            for (x, y, radius) in opponent_list:
-                cv2.circle(drawn_canvas, (x, y), radius, (0, 0, 255), 2)
+            if frame_data is not None:
 
-            # Draw Opponents
-            for (x, y) in team_list:
-                cv2.circle(drawn_canvas, (x, y), 4, (255, 0, 0), 2)
+                opponent_list = frame_data.opponents
+                ball_pos = frame_data.ball
+                team_list = frame_data.team
+                player_pos = frame_data.controlled
 
-            if player_pos is not None:
-                cv2.circle(drawn_canvas, (player_pos[0], player_pos[1]), 4, (255, 255, 0), 2)
+                logger.push(f"Amount of detected opponents: {len(opponent_list)}")
+                logger.push(f"Amount of detected teammates: {len(team_list)}")
+                if ball_pos is not None: logger.push(f"Ball position: {ball_pos.coordinate[0]}, {ball_pos.coordinate[1]}")
+                if player_pos is not None: logger.push(f"Controlled Player position: {player_pos.coordinate[0]}, {player_pos.coordinate[1]}")
 
-            # # Draw the Ball
-            if ball_pos is not None:
-                x, y, bw, bh = ball_pos
-                c_x, c_y = (x + int(bw / 2)), (y + int(bh / 2))
+                # Draw Opponents
+                for opponent in opponent_list:
+                    (x, y, radius) = opponent.coordinate
+                    cv2.circle(drawn_canvas, (x, y), 4, (0, 0, 255), 2)
 
-                cv2.circle(drawn_canvas, (c_x, c_y), 2, (0, 255, 0), 2)
+                # Draw Opponents
+                for team in team_list:
+                    (x, y) = team.coordinate
+                    cv2.circle(drawn_canvas, (x, y), 4, (255, 0, 0), 2)
+
+                if player_pos is not None:
+                    cv2.circle(drawn_canvas, (player_pos.coordinate[0], player_pos.coordinate[1]), 4, (255, 255, 0), 2)
+
+                # # Draw the Ball
+                if ball_pos is not None:
+                    x, y, bw, bh = ball_pos.coordinate
+                    c_x, c_y = (x + int(bw / 2)), (y + int(bh / 2))
+
+                    cv2.circle(drawn_canvas, (c_x, c_y), 2, (0, 255, 0), 2)
 
         # show_debuggers(frame)
+
 
         final_frame = frame.copy()
 
         # 4. Stitch and Display
         final_frame[Y_START:Y_END, X_START:X_END] = drawn_canvas
 
-        logger.update()
+        if not is_paused:  logger.update()
 
         display_frame = cv2.resize(final_frame, (1280, 720))
         cv2.imshow("EA FC Clean Tracker", display_frame)
