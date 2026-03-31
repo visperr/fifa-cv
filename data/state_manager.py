@@ -2,8 +2,12 @@ import collections
 import statistics
 from enum import Enum
 
+from easyocr import easyocr
+
 from data.frame_data import FrameData, predict_data
 from data.roi.minimap_data import *
+from data.roi.scoreboard_data import get_scores
+
 
 
 class GameState(Enum):
@@ -19,10 +23,12 @@ class MatchState(Enum):
     END_GAME = 3
 
 class GameStateManager:
-    def __init__(self, memory_size=15):
+    def __init__(self, start_score = (0, 0), memory_size=15):
         self.history = collections.deque(maxlen=memory_size)
 
         self.ingame_time = "00:00"
+        self.home_score = start_score[0]
+        self.away_score = start_score[1]
         self.last_state = GameState.IN_GAME
         self.last_frame = None
         self.data = {}
@@ -43,11 +49,20 @@ class GameStateManager:
 
         self.ingame_time = data["ingame_time"]
 
+        raw_frame = data["frame"]
+
         # Start processing data
-        if self.last_state == GameState.MINIMAP_TRANSPARENT:
+        if self.last_state == GameState.CUTSCENE:
+            self.last_frame = None
+
+            scoreboard_visible = data["scoreboard_visible"]
+            if scoreboard_visible:
+                self._process_scoreboard(data)
+        #       goal scored ofzo idk
+
+        elif self.last_state == GameState.MINIMAP_TRANSPARENT:
             self.last_frame = None
         elif self.last_state == GameState.IN_GAME:
-            raw_frame = data["frame"]
 
             frame_data = FrameData(raw_frame)
 
@@ -66,6 +81,8 @@ class GameStateManager:
 
         return {
             "time": self.ingame_time,
+            "home_score": self.home_score,
+            "away_score": self.away_score,
             "state": state,
             "frame_data": self.last_frame
         }
@@ -87,3 +104,20 @@ class GameStateManager:
             return GameState.FOUL
 
         return GameState.CUTSCENE
+
+
+    def _process_scoreboard(self, data):
+        if data["frame_counter"] % 30 == 0:
+            raw_frame = data["frame"]
+            (home_score, away_score) = get_scores(raw_frame)
+
+            logger.push(f"Home score: {home_score}, Away score: {away_score}")
+
+            if home_score is not None and away_score is not None:
+                if home_score == self.home_score + 1 and away_score == self.away_score:
+                    self.home_score = home_score
+                elif home_score == self.home_score and away_score == self.away_score + 1:
+                    self.away_score = away_score
+                else:
+                    # Scores are the same or are incorrect, we skip
+                    return

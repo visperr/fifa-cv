@@ -37,7 +37,7 @@ def process_video(video_path):
 
             clock_visible = is_clock_visible(clock_frame)
             minimap_visible = is_minimap_visible(frame)
-            scoreboard_visible = is_scoreboard_visible(scoreboard_frame)
+            scoreboard_visible = is_scoreboard_visible(frame)
 
             game_data = {
                 "clock_visible": clock_visible,

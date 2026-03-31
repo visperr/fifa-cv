@@ -33,7 +33,7 @@ def run_video_tracker(video_path):
 
         clock_visible = is_clock_visible(clock_roi)
         minimap_visible = is_minimap_visible(frame)
-        scoreboard_visible = is_scoreboard_visible(scoreboard_roi)
+        scoreboard_visible = is_scoreboard_visible(frame)
 
         if not is_paused:
             game_data = {
@@ -50,6 +50,7 @@ def run_video_tracker(video_path):
         game_state = state_manager.get_game_state(clean_roi)
 
         logger.push(f"Game State: {game_state["state"].name}")
+        logger.push(f"Home Score: {game_state["home_score"]}, Away Score: {game_state["away_score"]}")
 
         # 3. CREATE A CANVAS AND DRAW THE DATA
         drawn_canvas = clean_roi.copy()

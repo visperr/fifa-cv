@@ -3,6 +3,7 @@ import easyocr
 import numpy as np
 
 from data.roi.minimap_data import count_visible_pixels
+from util.bound_box import BoundingBox
 from util.screenlogger import logger
 
 # 1. Initialise the reader OUTSIDE your loop.
@@ -11,15 +12,14 @@ from util.screenlogger import logger
 print("Loading OCR AI... (This might take a few seconds on the first run)")
 reader = easyocr.Reader(['en'], gpu=True)
 
+
 # SCOREBOARD ROI
 
 regions = {
-
+    "full": BoundingBox(700, 870, 1219, 953),
+    "home_score": BoundingBox(784, 870, 867, 953),
+    "away_score": BoundingBox(1052, 870, 1135, 953),
 }
-Y_START = 870
-Y_END = 953
-X_START = 700
-X_END = 1219
 
 SCOREBOARD_MASKS = [
     [
@@ -37,34 +37,38 @@ SCOREBOARD_MASKS = [
 ]
 
 def get_scoreboard_dims():
-    return X_END - X_START, Y_END - Y_START
+    bounds = regions["full"]
+    return bounds.width, bounds.height
 
 def get_scoreboard_roi(frame):
-    return frame[Y_START:Y_END, X_START:X_END]
+    bounds = regions["full"]
+    return bounds.get_roi(frame)
 
-#
-# def get_ingame_time(clock_roi):
-#     """
-#     Reads the digital clock using a pure Python deep-learning model.
-#     """
-#     # EasyOCR is incredibly smart and often doesn't need heavy thresholding,
-#     # but converting to greyscale still helps it run faster!
-#     grey_clock = cv2.cvtColor(clock_roi, cv2.COLOR_BGR2GRAY)
-#
-#     # 2. Ask EasyOCR to read the image
-#     # The 'allowlist' parameter forces it to ONLY look for numbers and colons
-#     # detail=0 tells it to just give us the text string, not the bounding box coordinates
-#     results = reader.readtext(grey_clock, allowlist='0123456789:', detail=0)
-#
-#     # EasyOCR returns a list of found strings.
-#     # If the list isn't empty, we grab the first item.
-#     if len(results) > 0:
-#         return results[0].strip()
-#     else:
-#         return -1
 
-def is_scoreboard_visible(roi, debug=False):
+def get_scores(frame):
+    home_roi = regions["home_score"].get_roi(frame)
+    away_roi = regions["away_score"].get_roi(frame)
 
+    logger.push("TRYING TO READ SCORES")
+
+    rois = [home_roi, away_roi]
+    scores = []
+    for roi in rois:
+        grey_score = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+
+        score = reader.readtext(grey_score, allowlist='0123456789', detail=0)
+        if len(score) == 0:
+            scores.append(None)
+        else:
+            scores.append(int(score[0].strip()))
+            logger.push(f"DETECTED: {scores[-1]}", 30)
+
+    return scores
+
+
+def is_scoreboard_visible(frame, debug=False):
+
+    roi = regions["full"].get_roi(frame)
     master_mask = np.zeros(roi.shape[:2], dtype=np.uint8)
     for i in range(3):
         current_mask = cv2.inRange(roi, SCOREBOARD_MASKS[i][0], SCOREBOARD_MASKS[i][1])
