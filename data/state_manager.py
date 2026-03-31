@@ -28,9 +28,12 @@ class GameStateManager:
 
         self.ingame_time = "00:00"
         self.home_score = start_score[0]
+        self.last_home_score = start_score[0]
         self.away_score = start_score[1]
+        self.last_away_score = start_score[1]
         self.last_state = GameState.IN_GAME
         self.last_frame = None
+        self.scoreboard_counter = 0
         self.data = {}
 
     def push_data(self, data):
@@ -57,12 +60,22 @@ class GameStateManager:
 
             scoreboard_visible = data["scoreboard_visible"]
             if scoreboard_visible:
-                self._process_scoreboard(data)
-        #       goal scored ofzo idk
+                if self.scoreboard_counter == 0:
+                    self.last_home_score = self.home_score
+                    self.last_away_score = self.away_score
+
+                if self.scoreboard_counter > 90:
+                    self._process_scoreboard(data)
+
+                self.scoreboard_counter += 1
 
         elif self.last_state == GameState.MINIMAP_TRANSPARENT:
             self.last_frame = None
+            self.scoreboard_counter = 0
         elif self.last_state == GameState.IN_GAME:
+
+            self.scoreboard_counter = 0
+            self._process_scores()
 
             frame_data = FrameData(raw_frame)
 
@@ -107,7 +120,7 @@ class GameStateManager:
 
 
     def _process_scoreboard(self, data):
-        if data["frame_counter"] % 30 == 0:
+        if data["frame_counter"] % 15 == 0:
             raw_frame = data["frame"]
             (home_score, away_score) = get_scores(raw_frame)
 
@@ -121,3 +134,17 @@ class GameStateManager:
                 else:
                     # Scores are the same or are incorrect, we skip
                     return
+
+    def _process_scores(self):
+        if self.home_score != self.last_home_score:
+            # Home scored
+            logger.push(f"HOME SCORED!!!", 300, (0, 255, 0))
+        elif self.away_score != self.last_away_score:
+            # Away scored
+            logger.push(f"AWAY SCORED!!!", 300, (0, 255, 0))
+        else:
+            # New match state (kickoff, halftime, fulltime)
+            pass
+
+        self.last_home_score = self.home_score
+        self.last_away_score = self.away_score

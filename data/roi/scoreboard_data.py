@@ -76,7 +76,7 @@ def is_scoreboard_visible(frame, debug=False):
 
     num_pixels, total_pixels = count_visible_pixels(master_mask)
 
-    threshold = 0.90
+    threshold = 0.85
     is_visible = num_pixels / total_pixels > threshold
 
     logger.push(f"Scoreboard visible: {is_visible} ({round(num_pixels / total_pixels, 2) * 100}% > {threshold * 100}%)")

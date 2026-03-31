@@ -9,7 +9,7 @@ from util.process_video import process_video
 if __name__ == '__main__':
     # run_video_tracker("testclip.mp4")
     # run_video_tracker("tests/clips/foul.mp4")
-    run_video_tracker("tests/clips/goal_3_kickoff.mp4")
+    run_video_tracker("tests/clips/goal_2_kickoff.mp4")
     # run_video_tracker("tests/clips/goal.mp4")
     # run_video_tracker("tests/clips/kickoff.mp4")
 

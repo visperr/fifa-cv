@@ -8,7 +8,7 @@ from data.roi.minimap_data import *
 def run_video_tracker(video_path):
     cap = cv2.VideoCapture(video_path)
 
-    state_manager = GameStateManager()
+    state_manager = GameStateManager(start_score=(1,0))
 
     # setup_debuggers()
 
