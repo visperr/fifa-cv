@@ -1,6 +1,6 @@
 import json
 
-from util.minimap_data import get_minimap_dims
+from data.roi.minimap_data import get_minimap_dims
 
 
 def save_tracking_data(data, output):

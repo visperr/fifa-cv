@@ -1,6 +1,6 @@
 import cv2
 
-from util.minimap_data import get_minimap_roi, get_opponents
+from data.roi.minimap_data import get_minimap_roi, get_opponents
 
 
 def test_find_opponents():

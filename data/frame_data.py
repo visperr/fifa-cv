@@ -1,4 +1,4 @@
-from util.minimap_data import get_team, get_minimap_roi, get_opponents, get_controlled_player, get_ball
+from data.roi.minimap_data import get_team, get_minimap_roi, get_opponents, get_controlled_player, get_ball
 import math
 
 from util.screenlogger import logger

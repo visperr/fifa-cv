@@ -1,8 +1,9 @@
 import cv2
+
+from data.roi.scoreboard_data import is_scoreboard_visible, get_scoreboard_roi
 from data.state_manager import GameStateManager, GameState
-from util.clock_data import get_clock_roi, get_ingame_time, is_clock_visible
-from util.minimap_data import get_minimap_roi, get_ball, get_opponents, get_team, get_controlled_player, \
-    is_minimap_visible
+from data.roi.clock_data import get_clock_roi, get_ingame_time, is_clock_visible
+from data.roi.minimap_data import get_minimap_roi, is_minimap_visible
 from tqdm import tqdm
 
 def process_video(video_path):
@@ -29,16 +30,19 @@ def process_video(video_path):
 
             minimap_frame = get_minimap_roi(frame)
             clock_frame = get_clock_roi(frame)
+            scoreboard_frame = get_scoreboard_roi(frame)
 
             if frame_counter % 30 == 0:
                 ingame_time = get_ingame_time(clock_frame)
 
             clock_visible = is_clock_visible(clock_frame)
             minimap_visible = is_minimap_visible(frame)
+            scoreboard_visible = is_scoreboard_visible(scoreboard_frame)
 
             game_data = {
                 "clock_visible": clock_visible,
                 "minimap_visible": minimap_visible,
+                "scoreboard_visible": scoreboard_visible,
                 "ingame_time": ingame_time,
                 "frame": frame,
                 "frame_counter": frame_counter,

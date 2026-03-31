@@ -3,7 +3,7 @@ import statistics
 from enum import Enum
 
 from data.frame_data import FrameData, predict_data
-from util.minimap_data import *
+from data.roi.minimap_data import *
 
 
 class GameState(Enum):

@@ -2,7 +2,7 @@ import cv2
 import easyocr
 import numpy as np
 
-from util.minimap_data import count_visible_pixels
+from data.roi.minimap_data import count_visible_pixels
 from util.screenlogger import logger
 
 # 1. Initialise the reader OUTSIDE your loop.

@@ -1,8 +1,9 @@
+from data.roi.scoreboard_data import SCOREBOARD_MASKS, get_scoreboard_roi, is_scoreboard_visible
 from data.state_manager import GameState, GameStateManager
-from util.clock_data import get_clock_roi, get_ingame_time, is_clock_visible, CLOCK_MASKS
+from data.roi.clock_data import get_clock_roi, get_ingame_time, is_clock_visible, CLOCK_MASKS
 from util.mask_viewer import setup_colour_debugger, apply_colour_debugger, setup_multiple_colour_debugger, \
     apply_multi_colour_debugger
-from util.minimap_data import *
+from data.roi.minimap_data import *
 
 def run_video_tracker(video_path):
     cap = cv2.VideoCapture(video_path)
@@ -10,8 +11,6 @@ def run_video_tracker(video_path):
     state_manager = GameStateManager()
 
     # setup_debuggers()
-
-
 
     is_paused = False
     frame_counter = 0
@@ -23,8 +22,9 @@ def run_video_tracker(video_path):
 
         # 1. Slice out the perfectly clean minimap
         clean_roi = get_minimap_roi(frame)
-
         clock_roi = get_clock_roi(frame)
+        scoreboard_roi = get_scoreboard_roi(frame)
+
         if frame_counter % 30 == 0:
             ingame_time = get_ingame_time(clock_roi)
 
@@ -33,11 +33,13 @@ def run_video_tracker(video_path):
 
         clock_visible = is_clock_visible(clock_roi)
         minimap_visible = is_minimap_visible(frame)
+        scoreboard_visible = is_scoreboard_visible(scoreboard_roi)
 
         if not is_paused:
             game_data = {
                 "clock_visible": clock_visible,
                 "minimap_visible": minimap_visible,
+                "scoreboard_visible": scoreboard_visible,
                 "ingame_time": ingame_time,
                 "frame": frame,
                 "frame_counter": frame_counter,
@@ -89,7 +91,6 @@ def run_video_tracker(video_path):
                     cv2.circle(drawn_canvas, (c_x, c_y), 2, (0, 255, 0), 2)
 
         # show_debuggers(frame)
-
 
         final_frame = frame.copy()
 
