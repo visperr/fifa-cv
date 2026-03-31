@@ -12,6 +12,12 @@ class GameState(Enum):
     CUTSCENE = 3
     FOUL = 4
 
+class MatchState(Enum):
+    NOT_STARTED = 0
+    FIRST_HALF = 1
+    SECOND_HALF = 2
+    END_GAME = 3
+
 class GameStateManager:
     def __init__(self, memory_size=15):
         self.history = collections.deque(maxlen=memory_size)
@@ -28,6 +34,7 @@ class GameStateManager:
 
         # Update variables and smooth state
         self.data = data
+
 
         if len(self.history) > 0:
             self.last_state = statistics.mode(self.history)
