@@ -12,6 +12,10 @@ print("Loading OCR AI... (This might take a few seconds on the first run)")
 reader = easyocr.Reader(['en'], gpu=True)
 
 # SCOREBOARD ROI
+
+regions = {
+
+}
 Y_START = 870
 Y_END = 953
 X_START = 700
