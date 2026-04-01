@@ -13,22 +13,22 @@ X_END = 1115
 
 regions = {
     "corners": {
-        "left_top": BoundingBox(812, 864, 816, 868),
-        "left_bottom": BoundingBox(812, 1021, 816, 1025),
-        "right_bottom": BoundingBox(1100, 1021, 1104, 1025),
-        "right_top": BoundingBox(1100, 864, 1104, 868),
+        "left_top": BoundingBox(808, 862, 816, 868),
+        "left_bottom": BoundingBox(808, 1021, 816, 1025),
+        "right_bottom": BoundingBox(1100, 1021, 1108, 1025),
+        "right_top": BoundingBox(1100, 862, 1108, 868),
     },
 
     "sidelines": {
-        "top": BoundingBox(817, 864, 1099, 868),
-        "bottom": BoundingBox(817, 1021, 1099, 1025),
+        "top": BoundingBox(817, 860, 1099, 868),
+        "bottom": BoundingBox(817, 1021, 1099, 1029),
     },
 
     "baselines": {
         "left": {
-            "goal_chance": BoundingBox(805, 910, 813, 978),
-            "top": BoundingBox(805, 864, 813, 909),
-            "bottom": BoundingBox(805, 979, 813, 1025),
+            "goal_chance": BoundingBox(820, 910, 835, 978),
+            "top": BoundingBox(820, 864, 835, 909),
+            "bottom": BoundingBox(820, 979, 835, 1025),
         },
         "right": {
             "goal_chance": BoundingBox(1082, 910, 1111, 978),
@@ -60,6 +60,105 @@ regions = {
         }
     }
 }
+
+def find_region(point, region_dict):
+    x, y = point
+
+    for key, value in region_dict.items():
+        if isinstance(value, BoundingBox):
+            if value.contains(x, y):
+                return key
+        elif isinstance(value, dict):
+            result = find_region(point, value)
+            if result:
+                return f"{key}.{result}"
+
+    return None
+
+def is_inside_field(point, regions):
+    # If it's NOT in any out-of-bounds region → it's inside
+    return find_region(point, regions) is None
+
+
+class OutOfBoundsDetector:
+    def __init__(self, threshold_frames=5, movement_tolerance=3):
+        self.threshold = threshold_frames
+        self.tolerance = movement_tolerance
+
+        self.counter = 0
+        self.last_position = None
+
+        self.last_event = None
+        self.cooldown = 0
+
+    def update(self, position):
+        if position is None:
+            self._reset()
+            return None
+
+        # Cooldown to prevent spam
+        if self.cooldown > 0:
+            self.cooldown -= 1
+            return None
+
+        # 🔍 Check movement stability
+        if self.last_position is not None:
+            dx = abs(position[0] - self.last_position[0])
+            dy = abs(position[1] - self.last_position[1])
+
+            if dx <= self.tolerance and dy <= self.tolerance:
+                self.counter += 1
+            else:
+                self.counter = 1
+        else:
+            self.counter = 1
+
+        self.last_position = position
+
+        # 🔍 Check if ball is in any OUT-OF-BOUNDS region
+        region = find_region(position, regions)
+
+        if region is None:
+            self._reset()
+            return None
+
+        # 🎯 Only trigger if stable for enough frames
+        if self.counter >= self.threshold:
+            event = self._region_to_event(region)
+            return self._trigger_event(event)
+
+        return None
+
+    def _region_to_event(self, region):
+        # Corner detection
+        if region.startswith("corners"):
+            if "left" in region:
+                return {"type": "corner", "side": "left"}
+            else:
+                return {"type": "corner", "side": "right"}
+
+        # Sideline → throw-in
+        if region.startswith("sidelines"):
+            if "top" in region:
+                return {"type": "throw_in", "side": "top"}
+            else:
+                return {"type": "throw_in", "side": "bottom"}
+
+        return None
+
+    def _trigger_event(self, event):
+        if event is None:
+            return None
+
+        self.last_event = event
+        self.cooldown = 75  # frames
+
+        self._reset()
+        return event
+
+    def _reset(self):
+        self.counter = 0
+        self.last_position = None
 
 MINIMAP_LINES_MASKS = [
     # SIDE LINES
@@ -400,7 +499,7 @@ def is_minimap_visible(frame, debug=False):
         num_pixels += side_pixels
         total_pixels += side_total_pixels
 
-    threshold = 0.90
+    threshold = 0.50
     is_visible = num_pixels / total_pixels > threshold
 
     logger.push(f"Minimap visible: {is_visible} ({round(num_pixels / total_pixels, 2) * 100}% > {threshold * 100}%)")

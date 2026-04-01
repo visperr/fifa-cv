@@ -2,11 +2,10 @@ import collections
 import statistics
 from enum import Enum
 
-from easyocr import easyocr
-
 from data.frame_data import FrameData, predict_data
 from data.roi.minimap_data import *
 from data.roi.scoreboard_data import get_scores
+from data.roi.minimap_data import OutOfBoundsDetector
 
 
 
@@ -35,6 +34,8 @@ class GameStateManager:
         self.last_frame = None
         self.scoreboard_counter = 0
         self.data = {}
+        self.oob_detector = OutOfBoundsDetector()
+        self.no_ball_counter = 0
 
     def push_data(self, data):
 
@@ -76,6 +77,7 @@ class GameStateManager:
 
             self.scoreboard_counter = 0
             self._process_scores()
+            self._process_out_of_bounds()
 
             frame_data = FrameData(raw_frame)
 
@@ -148,3 +150,32 @@ class GameStateManager:
 
         self.last_home_score = self.home_score
         self.last_away_score = self.away_score
+
+    def _process_out_of_bounds(self):
+        if self.oob_detector is None:
+            logger.push("No OOB_DETECTOR", 300, (0, 255, 0))
+            return
+
+        ball = getattr(self.last_frame, "ball", None)
+
+        if ball is None:
+            self.no_ball_counter += 1
+            if self.no_ball_counter > 5:
+                logger.push("No BALL", 30, (0, 0, 255))
+            return
+
+        self.no_ball_counter = 0
+        # Convert (x,y,w,h) → center
+        x, y, w, h = ball.coordinate
+        center = (x + w // 2, y + h // 2)
+
+        # Convert ROI → GLOBAL coordinates
+        global_pos = (center[0] + X_START, center[1] + Y_START)
+
+        # Debug output
+        # logger.push(f"Ball global: {global_pos}", 100, (0, 255, 0))
+
+        event = self.oob_detector.update(global_pos)
+
+        if event:
+            logger.push(f"{event['type']} ({event['side']})", 300, (0, 255, 0))

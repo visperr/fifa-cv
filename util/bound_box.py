@@ -10,3 +10,6 @@ class BoundingBox:
     def get_roi(self, frame):
         roi = frame[self.y:self.y2, self.x:self.x2]
         return roi
+
+    def contains(self, x, y):
+        return self.x <= x <= self.x2 and self.y <= y <= self.y2
