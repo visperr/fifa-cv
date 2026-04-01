@@ -12,6 +12,7 @@ def run_video_tracker(video_path):
 
     # setup_debuggers()
 
+
     is_paused = False
     frame_counter = 0
     ingame_time = 0
@@ -92,6 +93,7 @@ def run_video_tracker(video_path):
                     cv2.circle(drawn_canvas, (c_x, c_y), 2, (0, 255, 0), 2)
 
         # show_debuggers(frame)
+
 
         final_frame = frame.copy()
 

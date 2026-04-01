@@ -7,13 +7,13 @@ from util.json import save_tracking_data
 from util.process_video import process_video
 
 if __name__ == '__main__':
-    # run_video_tracker("testclip.mp4")
+    run_video_tracker("testclip.mp4")
     # run_video_tracker("tests/clips/foul.mp4")
     # run_video_tracker("tests/clips/goal_2_kickoff.mp4")
     # run_video_tracker("tests/clips/goal.mp4")
     # run_video_tracker("tests/clips/kickoff.mp4")
     # run_video_tracker("tests/clips/throwin.mp4")
-    run_video_tracker("tests/clips/shot_nogoal_corner_2.mp4")
+    # run_video_tracker("tests/clips/onlycorner.mp4")
 
     # save_tracking_data(process_video("testclip.mp4"), "smoothed_data.json")
 

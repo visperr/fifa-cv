@@ -170,11 +170,11 @@ MINIMAP_LINES_MASKS = [
     [
         [
             np.array([110, 175, 120]),
-            np.array([180, 255, 255]),
+            np.array([232, 255, 255]),
         ],
         [
             np.array([0, 0, 0]),
-            np.array([20, 75, 35]),
+            np.array([85, 90, 75]),
         ]
     ]
 ]
@@ -499,7 +499,7 @@ def is_minimap_visible(frame, debug=False):
         num_pixels += side_pixels
         total_pixels += side_total_pixels
 
-    threshold = 0.50
+    threshold = 0.85
     is_visible = num_pixels / total_pixels > threshold
 
     logger.push(f"Minimap visible: {is_visible} ({round(num_pixels / total_pixels, 2) * 100}% > {threshold * 100}%)")
