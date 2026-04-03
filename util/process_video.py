@@ -1,9 +1,6 @@
 import cv2
 
-from data.roi.scoreboard_data import is_scoreboard_visible, get_scoreboard_roi
-from data.state_manager import GameStateManager, GameState
-from data.roi.clock_data import get_clock_roi, get_ingame_time, is_clock_visible
-from data.roi.minimap_data import get_minimap_roi, is_minimap_visible
+from engine.state_manager import GameStateManager, GameState
 from tqdm import tqdm
 
 def process_video(video_path):
@@ -15,7 +12,6 @@ def process_video(video_path):
     print("Processing video...")
 
     frame_counter = 0
-    ingame_time = 0
     match_data = []
 
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
@@ -27,29 +23,13 @@ def process_video(video_path):
                 break
 
 
-
-            minimap_frame = get_minimap_roi(frame)
-            clock_frame = get_clock_roi(frame)
-            scoreboard_frame = get_scoreboard_roi(frame)
-
-            if frame_counter % 30 == 0:
-                ingame_time = get_ingame_time(clock_frame)
-
-            clock_visible = is_clock_visible(clock_frame)
-            minimap_visible = is_minimap_visible(frame)
-            scoreboard_visible = is_scoreboard_visible(frame)
-
             game_data = {
-                "clock_visible": clock_visible,
-                "minimap_visible": minimap_visible,
-                "scoreboard_visible": scoreboard_visible,
-                "ingame_time": ingame_time,
                 "frame": frame,
                 "frame_counter": frame_counter,
             }
 
             state_manager.push_data(game_data)
-            game_state = state_manager.get_game_state(minimap_frame)
+            game_state = state_manager.get_game_state(frame)
 
             if game_state["state"] == GameState.IN_GAME:
 
@@ -88,7 +68,7 @@ def process_video(video_path):
                     frame_data = {
                         "frame_counter": frame_counter,
                         "game_state": str(game_state["state"].name),
-                        "time": ingame_time,
+                        "time": game_state["time"],
                         "ball": ball_coords,
                         "opponents": opponents_coords,
                         "team": player_coords,

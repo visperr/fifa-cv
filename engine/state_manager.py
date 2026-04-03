@@ -2,11 +2,11 @@ import collections
 import statistics
 from enum import Enum
 
-from data.frame_data import FrameData, predict_data
+from models.frame_data import FrameData, predict_data
 from data.roi.minimap_data import *
-from data.roi.scoreboard_data import get_scores
 from data.roi.minimap_data import OutOfBoundsDetector
-
+from vision.clock_detector import ClockDetector
+from vision.scoreboard_detector import ScoreboardDetector
 
 
 class GameState(Enum):
@@ -51,7 +51,13 @@ class GameStateManager:
 
         self.history.append(raw_state)
 
-        self.ingame_time = data["ingame_time"]
+        frame = data["frame"]
+        clock_detector = ClockDetector()
+
+        if data["frame_counter"] % 30 == 0:
+            self.ingame_time = clock_detector.process(frame)
+
+        logger.push(f"IG Time: {self.ingame_time}")
 
         raw_frame = data["frame"]
 
@@ -59,7 +65,9 @@ class GameStateManager:
         if self.last_state == GameState.CUTSCENE:
             self.last_frame = None
 
-            scoreboard_visible = data["scoreboard_visible"]
+            scoreboard_detector = ScoreboardDetector()
+
+            scoreboard_visible = scoreboard_detector.is_visible(scoreboard_detector.get_roi(raw_frame))
             if scoreboard_visible:
                 if self.scoreboard_counter == 0:
                     self.last_home_score = self.home_score
@@ -104,9 +112,13 @@ class GameStateManager:
 
     def _get_raw_state(self, data):
 
+        frame = data["frame"]
+
+        clock_detector = ClockDetector()
+
         if data["minimap_visible"]:
             return GameState.IN_GAME
-        elif data["clock_visible"]:
+        elif clock_detector.is_visible(clock_detector.get_roi(frame)):
             return GameState.MINIMAP_TRANSPARENT
         else:
             return GameState.CUTSCENE
@@ -124,7 +136,10 @@ class GameStateManager:
     def _process_scoreboard(self, data):
         if data["frame_counter"] % 15 == 0:
             raw_frame = data["frame"]
-            (home_score, away_score) = get_scores(raw_frame)
+
+            scoreboard_detector = ScoreboardDetector()
+
+            (home_score, away_score) = scoreboard_detector.process(raw_frame)
 
             logger.push(f"Home score: {home_score}, Away score: {away_score}")
 

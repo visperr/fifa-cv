@@ -1,9 +1,9 @@
-from data.roi.scoreboard_data import SCOREBOARD_MASKS, get_scoreboard_roi, is_scoreboard_visible
-from data.state_manager import GameState, GameStateManager
-from data.roi.clock_data import get_clock_roi, get_ingame_time, is_clock_visible, CLOCK_MASKS
+from engine.state_manager import GameState, GameStateManager
 from util.mask_viewer import setup_colour_debugger, apply_colour_debugger, setup_multiple_colour_debugger, \
     apply_multi_colour_debugger
 from data.roi.minimap_data import *
+from vision.clock_detector import ClockDetector
+
 
 def run_video_tracker(video_path):
     cap = cv2.VideoCapture(video_path)
@@ -15,7 +15,6 @@ def run_video_tracker(video_path):
 
     is_paused = False
     frame_counter = 0
-    ingame_time = 0
     while True:
         if not is_paused:
             ret, frame = cap.read()
@@ -23,25 +22,14 @@ def run_video_tracker(video_path):
 
         # 1. Slice out the perfectly clean minimap
         clean_roi = get_minimap_roi(frame)
-        clock_roi = get_clock_roi(frame)
-        scoreboard_roi = get_scoreboard_roi(frame)
-
-        if frame_counter % 30 == 0:
-            ingame_time = get_ingame_time(clock_roi)
 
         logger.push(f"Frame: {frame_counter}")
-        logger.push(f"Game Time: {ingame_time}")
 
-        clock_visible = is_clock_visible(clock_roi)
         minimap_visible = is_minimap_visible(frame)
-        scoreboard_visible = is_scoreboard_visible(frame)
 
         if not is_paused:
             game_data = {
-                "clock_visible": clock_visible,
                 "minimap_visible": minimap_visible,
-                "scoreboard_visible": scoreboard_visible,
-                "ingame_time": ingame_time,
                 "frame": frame,
                 "frame_counter": frame_counter,
             }
@@ -110,8 +98,8 @@ def run_video_tracker(video_path):
 
         cv2.imshow("Minimap Analysis (2x Zoom)", zoomed_minimap)
 
-
-        time_canvas = clock_roi.copy()
+        clock_detector = ClockDetector()
+        time_canvas = clock_detector.get_roi(frame).copy()
         time_height, time_width = time_canvas.shape[:2]
         zoomed_clock = cv2.resize(time_canvas, (time_width * 2, time_height * 2))
 
@@ -175,27 +163,27 @@ def setup_debuggers():
         default_lower=OPPONENT_MASK[0],
         default_upper=OPPONENT_MASK[1]
     )
-    setup_multiple_colour_debugger(
-        "CLOCK TUNER",
-        default_lower=[
-            CLOCK_MASKS[0][0],
-            CLOCK_MASKS[1][0]
-        ],
-        default_upper=[
-            CLOCK_MASKS[0][1],
-            CLOCK_MASKS[1][1]
-        ]
-    )
+    # setup_multiple_colour_debugger(
+    #     "CLOCK TUNER",
+    #     default_lower=[
+    #         CLOCK_MASKS[0][0],
+    #         CLOCK_MASKS[1][0]
+    #     ],
+    #     default_upper=[
+    #         CLOCK_MASKS[0][1],
+    #         CLOCK_MASKS[1][1]
+    #     ]
+    # )
 
 def show_debuggers(frame):
     minimap_roi = get_minimap_roi(frame).copy()
-    clock_roi = get_clock_roi(frame).copy()
+    # clock_roi = get_clock_roi(frame).copy()
 
     apply_colour_debugger("TEAM TUNER", minimap_roi, zoom_scale=2)
     apply_colour_debugger("OPPONENT TUNER", minimap_roi, zoom_scale=2)
     apply_colour_debugger("BALL TUNER", minimap_roi, zoom_scale=2)
     apply_colour_debugger("CONTROLLED TUNER", minimap_roi, zoom_scale=2)
-    apply_multi_colour_debugger("CLOCK TUNER", clock_roi, 2, 2)
+    # apply_multi_colour_debugger("CLOCK TUNER", clock_roi, 2, 2)
 
     TARGET_X1, START_Y1, END_Y1 = 806, 929, 960
     TARGET_X2, START_Y2, END_Y2 = 1110, 929, 960
