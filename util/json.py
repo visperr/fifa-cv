@@ -1,6 +1,6 @@
 import json
 
-from data.roi.minimap_data import get_minimap_dims
+from engine.event_detector import get_minimap_dims
 
 
 def save_tracking_data(data, output):

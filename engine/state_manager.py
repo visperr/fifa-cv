@@ -1,25 +1,14 @@
 import collections
 import statistics
-from enum import Enum
 
+from config.minimap_config import MINIMAP_BOUNDS
 from models.frame_data import FrameData, predict_data
-from data.roi.minimap_data import *
-from data.roi.minimap_data import OutOfBoundsDetector
+from engine.event_detector import OutOfBoundsDetector
+from models.game_states import GameState
+from util.screenlogger import logger
 from vision.clock_detector import ClockDetector
+from vision.minimap_detector import MinimapDetector
 from vision.scoreboard_detector import ScoreboardDetector
-
-
-class GameState(Enum):
-    IN_GAME = 1
-    MINIMAP_TRANSPARENT = 2
-    CUTSCENE = 3
-    FOUL = 4
-
-class MatchState(Enum):
-    NOT_STARTED = 0
-    FIRST_HALF = 1
-    SECOND_HALF = 2
-    END_GAME = 3
 
 class GameStateManager:
     def __init__(self, start_score = (0, 0), memory_size=15):
@@ -115,8 +104,9 @@ class GameStateManager:
         frame = data["frame"]
 
         clock_detector = ClockDetector()
+        minimap_detector = MinimapDetector()
 
-        if data["minimap_visible"]:
+        if minimap_detector.is_visible(minimap_detector.get_roi(frame)):
             return GameState.IN_GAME
         elif clock_detector.is_visible(clock_detector.get_roi(frame)):
             return GameState.MINIMAP_TRANSPARENT
@@ -185,7 +175,8 @@ class GameStateManager:
         center = (x + w // 2, y + h // 2)
 
         # Convert ROI → GLOBAL coordinates
-        global_pos = (center[0] + X_START, center[1] + Y_START)
+        minimap_bounds = MINIMAP_BOUNDS["full"]
+        global_pos = (center[0] + minimap_bounds.x, center[1] + minimap_bounds.y)
 
         # Debug output
         # logger.push(f"Ball global: {global_pos}", 100, (0, 255, 0))

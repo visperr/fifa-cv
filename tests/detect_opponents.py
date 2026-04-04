@@ -1,6 +1,6 @@
 import cv2
 
-from data.roi.minimap_data import get_minimap_roi, get_opponents
+from engine.event_detector import get_minimap_roi, get_opponents
 
 
 def test_find_opponents():

@@ -1,7 +1,7 @@
-from data.roi.minimap_data import get_team, get_minimap_roi, get_opponents, get_controlled_player, get_ball
 import math
 
 from util.screenlogger import logger
+from vision.minimap_detector import MinimapDetector
 
 
 class CoordinateData:
@@ -22,15 +22,17 @@ class FrameData:
         self._process()
 
     def _process(self):
-        minimap_roi = get_minimap_roi(self.frame)
+        minimap_detector = MinimapDetector()
 
+        data = minimap_detector.process(self.frame)
+        if data is None: return
 
-        self.opponents = [CoordinateData(coord) for coord in get_opponents(minimap_roi)]
-        self.team = [CoordinateData(coord) for coord in get_team(minimap_roi)]
+        self.opponents = [CoordinateData(coord) for coord in data["opponents"]]
+        self.team = [CoordinateData(coord) for coord in data["team"]]
 
-        controlled_coord = get_controlled_player(minimap_roi)
+        controlled_coord = data["controlled"]
         self.controlled = CoordinateData(controlled_coord) if controlled_coord else None
-        ball_coord = get_ball(minimap_roi)
+        ball_coord = data["ball"]
         self.ball = CoordinateData(ball_coord) if ball_coord else None
 
 

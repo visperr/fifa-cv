@@ -1,11 +1,15 @@
+import numpy as np
+
 from models.bound_box import BoundingBox
 
-
 MINIMAP_BOUNDS = {
-    "full": BoundingBox(800, 850, 1115, 1040)
+    "full": BoundingBox(800, 850, 1115, 1040),
+    "line_l": BoundingBox(6, 79, 7, 110),
+    "line_r": BoundingBox(310, 79, 311, 110),
+    "line_bottom": BoundingBox(16, 181, 299, 182)
 }
 
-MINIMAP_VISIBILITY_THRESHOLD = 85
+MINIMAP_VISIBILITY_THRESHOLD = 0.85
 
 MINIMAP_REGIONS = {
     "corners": {
@@ -55,4 +59,34 @@ MINIMAP_REGIONS = {
             "bottom": BoundingBox(1017, 989, 1105, 1020),
         }
     }
+}
+
+MINIMAP_MASKS = {
+    "line_side": [
+        np.array([120, 175, 150]),
+        np.array([175, 255, 190])
+    ],
+    "line_bottom": [
+        [
+            np.array([110, 175, 120]),
+            np.array([232, 255, 255]),
+        ],
+        [
+            np.array([0, 0, 0]),
+            np.array([85, 90, 75]),
+        ]
+    ],
+    "ball": [
+        np.array([0, 170, 175]),
+        np.array([100, 255, 255])
+    ], "team": [
+        np.array([26, 0, 0]),
+        np.array([132, 50, 60])
+    ], "controlled": [
+        np.array([24, 0, 69]),
+        np.array([150, 50, 150])
+    ], "opponents": [
+        np.array([200, 200, 200]),
+        np.array([255, 255, 255])
+    ]
 }

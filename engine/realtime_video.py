@@ -1,8 +1,10 @@
+import cv2
+
 from engine.state_manager import GameState, GameStateManager
-from util.mask_viewer import setup_colour_debugger, apply_colour_debugger, setup_multiple_colour_debugger, \
-    apply_multi_colour_debugger
-from data.roi.minimap_data import *
+from util.mask_viewer import apply_colour_debugger, apply_multi_colour_debugger
+from util.screenlogger import logger
 from vision.clock_detector import ClockDetector
+from vision.minimap_detector import MinimapDetector
 
 
 def run_video_tracker(video_path):
@@ -21,28 +23,24 @@ def run_video_tracker(video_path):
             if not ret: break
 
         # 1. Slice out the perfectly clean minimap
-        clean_roi = get_minimap_roi(frame)
-
         logger.push(f"Frame: {frame_counter}")
-
-        minimap_visible = is_minimap_visible(frame)
 
         if not is_paused:
             game_data = {
-                "minimap_visible": minimap_visible,
                 "frame": frame,
                 "frame_counter": frame_counter,
             }
 
             state_manager.push_data(game_data)
 
-        game_state = state_manager.get_game_state(clean_roi)
+        game_state = state_manager.get_game_state(frame)
 
         logger.push(f"Game State: {game_state["state"].name}")
         logger.push(f"Home Score: {game_state["home_score"]}, Away Score: {game_state["away_score"]}")
 
-        # 3. CREATE A CANVAS AND DRAW THE DATA
-        drawn_canvas = clean_roi.copy()
+        minimap_detector = MinimapDetector()
+        minimap_roi = minimap_detector.get_roi(frame).copy()
+        drawn_canvas = minimap_roi.copy()
 
         if game_state["state"] == GameState.IN_GAME:
 
@@ -86,7 +84,8 @@ def run_video_tracker(video_path):
         final_frame = frame.copy()
 
         # 4. Stitch and Display
-        final_frame[Y_START:Y_END, X_START:X_END] = drawn_canvas
+        minimap_bounds = minimap_detector.bounds["full"]
+        final_frame[minimap_bounds.y:minimap_bounds.y2, minimap_bounds.x:minimap_bounds.x2] = drawn_canvas
 
         if not is_paused:  logger.update()
 
@@ -116,53 +115,53 @@ def run_video_tracker(video_path):
     cap.release()
     cv2.destroyAllWindows()
 
-def setup_debuggers():
-    setup_multiple_colour_debugger(
-        "UI Border Tuning Multi",
-        default_lower=[
-            MINIMAP_LINES_MASKS[1][0],
-            MINIMAP_LINES_MASKS[1][2]
-        ],
-        default_upper=[
-            MINIMAP_LINES_MASKS[1][1],
-            MINIMAP_LINES_MASKS[1][3]
-        ]
-    )
-
-    setup_colour_debugger(
-        "UI Border Tuning",
-        default_lower=MINIMAP_LINES_MASKS[0][0],
-        default_upper=MINIMAP_LINES_MASKS[0][1]
-    )
-
-    setup_colour_debugger(
-        "UI Border Tuning 2",
-        default_lower=MINIMAP_LINES_MASKS[0][0],
-        default_upper=MINIMAP_LINES_MASKS[0][1]
-    )
-
-    setup_colour_debugger(
-        "BALL TUNER",
-        default_lower=BALL_MASK[0],
-        default_upper=BALL_MASK[1]
-    )
-
-    setup_colour_debugger(
-        "TEAM TUNER",
-        default_lower=TEAM_MASK[0],
-        default_upper=TEAM_MASK[1]
-    )
-
-    setup_colour_debugger(
-        "CONTROLLED TUNER",
-        default_lower=CONTROLLED_MASK[0],
-        default_upper=CONTROLLED_MASK[1]
-    )
-    setup_colour_debugger(
-        "OPPONENT TUNER",
-        default_lower=OPPONENT_MASK[0],
-        default_upper=OPPONENT_MASK[1]
-    )
+# def setup_debuggers():
+    # setup_multiple_colour_debugger(
+    #     "UI Border Tuning Multi",
+    #     default_lower=[
+    #         MINIMAP_LINES_MASKS[1][0],
+    #         MINIMAP_LINES_MASKS[1][2]
+    #     ],
+    #     default_upper=[
+    #         MINIMAP_LINES_MASKS[1][1],
+    #         MINIMAP_LINES_MASKS[1][3]
+    #     ]
+    # )
+    #
+    # setup_colour_debugger(
+    #     "UI Border Tuning",
+    #     default_lower=MINIMAP_LINES_MASKS[0][0],
+    #     default_upper=MINIMAP_LINES_MASKS[0][1]
+    # )
+    #
+    # setup_colour_debugger(
+    #     "UI Border Tuning 2",
+    #     default_lower=MINIMAP_LINES_MASKS[0][0],
+    #     default_upper=MINIMAP_LINES_MASKS[0][1]
+    # )
+    #
+    # setup_colour_debugger(
+    #     "BALL TUNER",
+    #     default_lower=BALL_MASK[0],
+    #     default_upper=BALL_MASK[1]
+    # )
+    #
+    # setup_colour_debugger(
+    #     "TEAM TUNER",
+    #     default_lower=TEAM_MASK[0],
+    #     default_upper=TEAM_MASK[1]
+    # )
+    #
+    # setup_colour_debugger(
+    #     "CONTROLLED TUNER",
+    #     default_lower=CONTROLLED_MASK[0],
+    #     default_upper=CONTROLLED_MASK[1]
+    # )
+    # setup_colour_debugger(
+    #     "OPPONENT TUNER",
+    #     default_lower=OPPONENT_MASK[0],
+    #     default_upper=OPPONENT_MASK[1]
+    # )
     # setup_multiple_colour_debugger(
     #     "CLOCK TUNER",
     #     default_lower=[
@@ -176,7 +175,8 @@ def setup_debuggers():
     # )
 
 def show_debuggers(frame):
-    minimap_roi = get_minimap_roi(frame).copy()
+    minimap_detector = MinimapDetector()
+    minimap_roi = minimap_detector.get_roi(frame).copy()
     # clock_roi = get_clock_roi(frame).copy()
 
     apply_colour_debugger("TEAM TUNER", minimap_roi, zoom_scale=2)
