@@ -15,7 +15,9 @@ if __name__ == '__main__':
     # run_video_tracker("tests/clips/throwin.mp4")
     # run_video_tracker("tests/clips/onlycorner.mp4")
 
-    save_tracking_data(process_video("testclip.mp4"), "smoothed_data.json")
+    # save_tracking_data(process_video("testclip.mp4", (1,0)), "smoothed_data.json")
+    # save_tracking_data(process_video("tests/clips/goal_2.mp4", (1,0)), "goal.json")
+    save_tracking_data(process_video("full_match.mp4", ), "full_match.json")
 
     # generate_heatmap_from_json("smoothed_data.json")
     # start_replay("smoothed_data.json", "minimap_clean.png")

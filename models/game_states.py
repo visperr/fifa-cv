@@ -1,10 +1,10 @@
 from enum import Enum
 
 class GameState(Enum):
-    IN_GAME = 1
-    MINIMAP_TRANSPARENT = 2
-    CUTSCENE = 3
-    FOUL = 4
+    IN_GAME = "In-Game"
+    MINIMAP_TRANSPARENT = "In-Game, transparent minimap"
+    CUTSCENE = "Cutscene"
+    FOUL = "Foul"
 
 class MatchState(Enum):
     NOT_STARTED = 0

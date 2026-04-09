@@ -3,10 +3,10 @@ import cv2
 from engine.state_manager import GameStateManager, GameState
 from tqdm import tqdm
 
-def process_video(video_path):
+def process_video(video_path, initial_score=(0,0)):
     cap = cv2.VideoCapture(video_path)
 
-    state_manager = GameStateManager()
+    state_manager = GameStateManager(start_score=initial_score)
 
 
     print("Processing video...")
@@ -33,6 +33,7 @@ def process_video(video_path):
                     ret = cap.grab()
                     if not ret: break
                     frame_counter += 1
+                    pbar.update(1)
 
             game_data = {
                 "frame": frame,
@@ -43,51 +44,52 @@ def process_video(video_path):
             state_manager.push_data(game_data)
             game_state = state_manager.get_game_state(frame)
 
-            if game_state["state"] == GameState.IN_GAME:
+            frame_data = game_state["frame_data"]
 
-                frame_data = game_state["frame_data"]
+            ball_coords = None
+            opponents_coords = []
+            player_coords = []
+            controlled_player_coords = None
 
-                if frame_data is not None:
-                    opponent_list = frame_data.opponents
-                    ball_pos = frame_data.ball
-                    team_list = frame_data.team
-                    player_pos = frame_data.controlled
+            if frame_data is not None:
+                opponent_list = frame_data.opponents
+                ball_pos = frame_data.ball
+                team_list = frame_data.team
+                player_pos = frame_data.controlled
 
-                    ball_coords = None
-                    if ball_pos is not None:
-                        x = int(ball_pos.coordinate[0])
-                        y = int(ball_pos.coordinate[1])
-                        ball_coords = (x, y)
+                if ball_pos is not None:
+                    x = int(ball_pos.coordinate[0])
+                    y = int(ball_pos.coordinate[1])
+                    ball_coords = (x, y)
 
-                    opponents_coords = []
-                    for opp in opponent_list:
-                        x = int(opp.coordinate[0])
-                        y = int(opp.coordinate[1])
-                        opponents_coords.append((x, y))
+                for opp in opponent_list:
+                    x = int(opp.coordinate[0])
+                    y = int(opp.coordinate[1])
+                    opponents_coords.append((x, y))
 
-                    player_coords = []
-                    for player in team_list:
-                        x = int(player.coordinate[0])
-                        y = int(player.coordinate[1])
-                        player_coords.append((x, y))
+                for player in team_list:
+                    x = int(player.coordinate[0])
+                    y = int(player.coordinate[1])
+                    player_coords.append((x, y))
 
-                    controlled_player_coords = None
-                    if player_pos is not None:
-                        x = int(player_pos.coordinate[0])
-                        y = int(player_pos.coordinate[1])
-                        controlled_player_coords = (x, y)
+                if player_pos is not None:
+                    x = int(player_pos.coordinate[0])
+                    y = int(player_pos.coordinate[1])
+                    controlled_player_coords = (x, y)
 
-                    frame_data = {
-                        "frame_counter": frame_counter,
-                        "game_state": str(game_state["state"].name),
-                        "time": game_state["time"],
-                        "ball": ball_coords,
-                        "opponents": opponents_coords,
-                        "team": player_coords,
-                        "controlled_player": controlled_player_coords,
-                    }
+            frame_data = {
+                "frame_counter": frame_counter,
+                "game_state": game_state["state"].value,
+                "time": game_state["time"],
+                "home_score": game_state["home_score"],
+                "away_score": game_state["away_score"],
+                "ball": ball_coords,
+                "opponents": opponents_coords,
+                "team": player_coords,
+                "controlled_player": controlled_player_coords,
+            }
 
-                    match_data.append(frame_data)
+            match_data.append(frame_data)
 
             frame_counter += 1
             pbar.update(1)
