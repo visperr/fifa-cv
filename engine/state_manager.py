@@ -26,6 +26,8 @@ class GameStateManager:
         self.data = {}
         self.oob_detector = OutOfBoundsDetector()
         self.no_ball_counter = 0
+        self.events = []
+        self.pre_cutscene_oob_event = None
 
     def push_data(self, data):
         step = data.get("step", 1)
@@ -184,3 +186,5 @@ class GameStateManager:
 
         if event:
             logger.push(f"{event['type']} ({event['side']})", 300, (0, 255, 0))
+
+            self.pre_cutscene_oob_event = event
