@@ -22,10 +22,22 @@ def process_video(video_path):
             if not ret:
                 break
 
+            is_cutscene = state_manager.last_state == GameState.CUTSCENE
+
+            frame_step = 1
+            if is_cutscene:
+                frame_step = 2 if state_manager.scoreboard_visible else 10
+
+            if frame_step > 1:
+                for _ in range(frame_step - 1):
+                    ret = cap.grab()
+                    if not ret: break
+                    frame_counter += 1
 
             game_data = {
                 "frame": frame,
                 "frame_counter": frame_counter,
+                "step": frame_step,
             }
 
             state_manager.push_data(game_data)

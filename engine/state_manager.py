@@ -22,23 +22,22 @@ class GameStateManager:
         self.last_state = GameState.IN_GAME
         self.last_frame = None
         self.scoreboard_counter = 0
+        self.scoreboard_visible = False
         self.data = {}
         self.oob_detector = OutOfBoundsDetector()
         self.no_ball_counter = 0
 
     def push_data(self, data):
+        step = data.get("step", 1)
 
-        # Get raw state (Is minimap / clock showing or not?) before being processed
         raw_state = self._get_raw_state(data)
-
-        # Update variables and smooth state
         self.data = data
-
 
         if len(self.history) > 0:
             self.last_state = statistics.mode(self.history)
 
-        self.history.append(raw_state)
+        for _ in range(step):
+            self.history.append(raw_state)
 
         frame = data["frame"]
         clock_detector = ClockDetector()
@@ -56,8 +55,8 @@ class GameStateManager:
 
             scoreboard_detector = ScoreboardDetector()
 
-            scoreboard_visible = scoreboard_detector.is_visible(scoreboard_detector.get_roi(raw_frame))
-            if scoreboard_visible:
+            self.scoreboard_visible = scoreboard_detector.is_visible(scoreboard_detector.get_roi(raw_frame))
+            if self.scoreboard_visible:
                 if self.scoreboard_counter == 0:
                     self.last_home_score = self.home_score
                     self.last_away_score = self.away_score
@@ -65,7 +64,7 @@ class GameStateManager:
                 if self.scoreboard_counter > 90:
                     self._process_scoreboard(data)
 
-                self.scoreboard_counter += 1
+                self.scoreboard_counter += step
 
         elif self.last_state == GameState.MINIMAP_TRANSPARENT:
             self.last_frame = None

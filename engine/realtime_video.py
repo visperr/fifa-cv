@@ -7,10 +7,10 @@ from vision.clock_detector import ClockDetector
 from vision.minimap_detector import MinimapDetector
 
 
-def run_video_tracker(video_path):
+def run_video_tracker(video_path, start_score=(0,0)):
     cap = cv2.VideoCapture(video_path)
 
-    state_manager = GameStateManager(start_score=(1,0))
+    state_manager = GameStateManager(start_score=start_score)
 
     # setup_debuggers()
 
@@ -22,6 +22,19 @@ def run_video_tracker(video_path):
             ret, frame = cap.read()
             if not ret: break
 
+
+        is_cutscene = state_manager.last_state == GameState.CUTSCENE
+
+        frame_step = 1
+        if is_cutscene:
+            frame_step = 2 if state_manager.scoreboard_visible else 10
+
+        if frame_step > 1:
+            for _ in range(frame_step - 1):
+                ret = cap.grab()
+                if not ret: break
+                frame_counter += 1
+
         # 1. Slice out the perfectly clean minimap
         logger.push(f"Frame: {frame_counter}")
 
@@ -29,6 +42,7 @@ def run_video_tracker(video_path):
             game_data = {
                 "frame": frame,
                 "frame_counter": frame_counter,
+                "step": frame_step,
             }
 
             state_manager.push_data(game_data)

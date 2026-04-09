@@ -2,8 +2,6 @@ import cv2
 import numpy as np
 
 from config.minimap_config import *
-from models.bound_box import BoundingBox
-from util.ocr_engine import ocr_reader
 from util.screenlogger import logger
 from vision.base_detector import BaseDetector, count_visible_pixels
 
@@ -255,8 +253,8 @@ class MinimapDetector(BaseDetector):
 
                 # A perfect circle is 1.0. Squares sit around 0.78.
                 # We allow a little wiggle room (0.75 to 1.2) for blurry pixels!
-                if debug: cv2.putText(canv, f"Circularity {round(circularity, 2)}",
-                                      (x, y), cv2.FONT_HERSHEY_SIMPLEX, 0.25, (0, 0, 255), 1)
+                # if debug: cv2.putText(canv, f"Circularity {round(circularity, 2)}",
+                #                       (x, y), cv2.FONT_HERSHEY_SIMPLEX, 0.25, (0, 0, 255), 1)
 
                 if 0.75 < circularity <= 1.2:
                     M = cv2.moments(cnt)
