@@ -1,6 +1,6 @@
 import json
 
-from engine.event_detector import get_minimap_dims
+from config.minimap_config import MINIMAP_BOUNDS
 
 
 def save_tracking_data(data, output):
@@ -8,8 +8,8 @@ def save_tracking_data(data, output):
     metadata = {
         "metadata": {
             "minimap_size": {
-                "width": get_minimap_dims()[0],
-                "height": get_minimap_dims()[1]
+                "width": MINIMAP_BOUNDS["full"].width,
+                "height": MINIMAP_BOUNDS["full"].height,
             },
         },
     }
