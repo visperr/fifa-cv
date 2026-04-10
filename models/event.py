@@ -1,8 +1,9 @@
 from enum import Enum
 
 class EventType(Enum):
-    Unknown = "Unknown"
+    UNKNOWN = "Unknown"
     GOAL = "Goal"
+    SHOT = "Shot"
     CORNER = "Corner"
     THROW_IN = "Throw-in"
     FOUL = "Foul"
